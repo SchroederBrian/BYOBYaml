@@ -1,0 +1,218 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      deployment.kubernetes.io/revision: "3"
+      app.openshift.io/vcs-uri: https://git.example.com/shop.git
+    creationTimestamp: "2026-10-01T10:00:00Z"
+    generation: 3
+    labels:
+      app: shop
+      app.kubernetes.io/component: web
+    name: shop
+    namespace: shop-prod
+    resourceVersion: "123456"
+    uid: 6f1c-aaaa
+    managedFields:
+    - manager: kubectl
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 3
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: shop
+        tier: web
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 0
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: shop
+          tier: web
+        annotations:
+          prometheus.io/scrape: "true"
+      spec:
+        serviceAccountName: shop
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        tolerations:
+        - key: dedicated
+          operator: Equal
+          value: web
+          effect: NoSchedule
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: shop
+        initContainers:
+        - name: migrate
+          image: registry.example.com/shop:2.1
+          command: ["/bin/sh", "-c", "bin/migrate --all"]
+        containers:
+        - name: web
+          image: registry.example.com/shop:2.1
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8080
+            name: http
+            protocol: TCP
+          - containerPort: 9090
+            name: metrics
+            hostPort: 9090
+          env:
+          - name: TZ
+            value: Europe/Berlin
+          - name: DB_PASS
+            valueFrom:
+              secretKeyRef:
+                name: shop-db
+                key: password
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+              ephemeral-storage: 1Gi
+            limits:
+              memory: 1Gi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+              scheme: HTTP
+            periodSeconds: 5
+          volumeMounts:
+          - name: data
+            mountPath: /data
+          - name: cfg
+            mountPath: /etc/shop/app.yaml
+            subPath: app.yaml
+            readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          terminationMessagePath: /dev/termination-log
+        volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: shop-data
+        - name: cfg
+          configMap:
+            name: shop-config
+            defaultMode: 420
+        - name: tmp
+          emptyDir: {}
+  status:
+    availableReplicas: 3
+- apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: shop
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+  spec:
+    ingressClassName: nginx
+    tls:
+    - hosts: [shop.example.com]
+      secretName: shop-tls
+    rules:
+    - host: shop.example.com
+      http:
+        paths:
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: shop
+              port:
+                name: http
+    - host: api.example.com
+      http:
+        paths:
+        - path: /v1
+          pathType: Exact
+          backend:
+            service:
+              name: api
+              port:
+                number: 80
+- apiVersion: apps/v1
+  kind: StatefulSet
+  metadata:
+    name: pg
+  spec:
+    serviceName: pg
+    replicas: 1
+    selector:
+      matchLabels:
+        app: pg
+    template:
+      metadata:
+        labels:
+          app: pg
+      spec:
+        containers:
+        - name: pg
+          image: postgres:16
+    volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 20Gi
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    name: backup
+  spec:
+    schedule: "0 2 * * *"
+    concurrencyPolicy: Forbid
+    jobTemplate:
+      spec:
+        backoffLimit: 2
+        template:
+          metadata:
+            labels:
+              app: backup
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - name: backup
+              image: alpine:3.20
+              args: ["sh", "-c", "echo 'backup done'"]
+- apiVersion: cert-manager.io/v1
+  kind: Certificate
+  metadata:
+    name: shop-cert
+  spec:
+    secretName: shop-tls
+    dnsNames: [shop.example.com]
+    issuerRef:
+      name: letsencrypt
+      kind: ClusterIssuer

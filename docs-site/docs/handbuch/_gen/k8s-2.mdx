@@ -1,0 +1,64 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[Deployment web Replicas 2]
+  [Container web Image ghcr.io/example/web:1.4.0]
+    [Port 8080 Name http TCP]
+    [mindestens (requests) CPU 100m RAM 128Mi]
+    [höchstens (limits) CPU 500m RAM 256Mi]
+    [Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port http nach 3 s alle 10 s]
+    [Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port http nach 10 s alle 20 s]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web:1.4.0
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+```
+
+</TabItem>
+</Tabs>

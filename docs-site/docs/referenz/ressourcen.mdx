@@ -1,0 +1,519 @@
+---
+title: "Ressourcen"
+sidebar_label: "Ressourcen"
+sidebar_position: 3
+description: "Startblöcke für Kubernetes- und OpenShift-Ressourcen."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#c08a1e' }} /> Ressourcen
+
+Startblöcke für Kubernetes- und OpenShift-Ressourcen. Jeder Startblock erzeugt ein YAML-Dokument; mehrere in einer Datei werden mit `---` getrennt.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Namespace …](#k8s-namespace) | Start | oberste Ebene |
+| [Deployment … Replicas …](#k8s-deployment) | Start | oberste Ebene |
+| [StatefulSet … Replicas … Service …](#k8s-statefulset) | Start | oberste Ebene |
+| [DaemonSet …](#k8s-daemonset) | Start | oberste Ebene |
+| [Job … Versuche …](#k8s-job) | Start | oberste Ebene |
+| [CronJob … Zeitplan …](#k8s-cronjob) | Start | oberste Ebene |
+| [Service … für App … Typ …](#k8s-service) | Start | oberste Ebene |
+| [Route … → Service … Port …](#k8s-route) | Start | oberste Ebene |
+| [Ingress … Klasse …](#k8s-ingress) | Start | oberste Ebene |
+| [ConfigMap …](#k8s-configmap) | Start | oberste Ebene |
+| [Secret … Typ …](#k8s-secret) | Start | oberste Ebene |
+| [Speicher (PVC) … Größe … Zugriff …](#k8s-pvc) | Start | oberste Ebene |
+| [Autoscaler … für Deployment … min … max …](#k8s-hpa) | Start | oberste Ebene |
+| [ImageStream … lokaler Lookup …](#k8s-imagestream) | Start | oberste Ebene |
+| [BuildConfig … → ImageStreamTag … Ablauf …](#k8s-buildconfig) | Start | oberste Ebene |
+| [ServiceAccount …](#k8s-serviceaccount) | Start | oberste Ebene |
+| [Eigene Ressource … kind … apiVersion …](#k8s-custom) | Start | oberste Ebene |
+
+## Namespace … {#k8s-namespace}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Namespace [1]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_namespace`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-project` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-project
+```
+
+</details>
+
+## Deployment … Replicas … {#k8s-deployment}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Deployment [1] Replicas [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_deployment`
+
+> Startet Pods. Lege Container (orange) und Metadaten darunter.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `REPLICAS` | Zahl | `2` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+```
+
+</details>
+
+## StatefulSet … Replicas … Service … {#k8s-statefulset}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>StatefulSet [1] Replicas [2] Service [3]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_statefulset`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `postgres` |  |
+| 2 | `REPLICAS` | Zahl | `1` |  |
+| 3 | `SVC` | Text | `postgres` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+```
+
+</details>
+
+## DaemonSet … {#k8s-daemonset}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>DaemonSet [1]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_daemonset`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `node-agent` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-agent
+spec:
+  selector:
+    matchLabels:
+      app: node-agent
+  template:
+    metadata:
+      labels:
+        app: node-agent
+```
+
+</details>
+
+## Job … Versuche … {#k8s-job}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Job [1] Versuche [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_job`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `db-migrate` |  |
+| 2 | `BACKOFF` | Zahl | `3` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: db-migrate
+    spec:
+      restartPolicy: Never
+```
+
+</details>
+
+## CronJob … Zeitplan … {#k8s-cronjob}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>CronJob [1] Zeitplan [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_cronjob`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `nightly-backup` |  |
+| 2 | `SCHEDULE` | Text | `0 2 * * *` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nightly-backup
+spec:
+  schedule: 0 2 * * *
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: nightly-backup
+        spec:
+          restartPolicy: OnFailure
+```
+
+</details>
+
+## Service … für App … Typ … {#k8s-service}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Service [1] für App [2] Typ [3]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_service`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `APP` | Text | `demo-app` |  |
+| 3 | `TYPE` | Auswahl | `ClusterIP` | `ClusterIP`, `NodePort`, `LoadBalancer`, `ExternalName` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app
+spec:
+  selector:
+    app: demo-app
+  type: ClusterIP
+```
+
+</details>
+
+## Route … → Service … Port … {#k8s-route}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Route [1] → Service [2] Port [3]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_route`
+
+> OpenShift Route: macht einen Service von außen erreichbar.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `SVC` | Text | `demo-app` |  |
+| 3 | `PORT` | Text | `http` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: demo-app
+spec:
+  to:
+    kind: Service
+    name: demo-app
+  port:
+    targetPort: http
+```
+
+</details>
+
+## Ingress … Klasse … {#k8s-ingress}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Ingress [1] Klasse [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_ingress`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `CLASS` | Text | `nginx` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-app
+spec:
+  ingressClassName: nginx
+```
+
+</details>
+
+## ConfigMap … {#k8s-configmap}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>ConfigMap [1]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_configmap`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app-config` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-app-config
+```
+
+</details>
+
+## Secret … Typ … {#k8s-secret}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Secret [1] Typ [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_secret`
+
+> Achtung: Base64 ist keine Verschlüsselung. Keine echten Passwörter in Git committen!
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app-secret` |  |
+| 2 | `TYPE` | Auswahl | `Opaque` | `Opaque`, `kubernetes.io/dockerconfigjson`, `kubernetes.io/tls`, `kubernetes.io/basic-auth`, `kubernetes.io/ssh-auth` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-app-secret
+type: Opaque
+```
+
+</details>
+
+## Speicher (PVC) … Größe … Zugriff … {#k8s-pvc}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Speicher (PVC) [1] Größe [2] Zugriff [3]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_pvc`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app-data` |  |
+| 2 | `SIZE` | Text | `5Gi` |  |
+| 3 | `MODE` | Auswahl | `ReadWriteOnce` | `ReadWriteOnce`, `ReadWriteMany`, `ReadOnlyMany`, `ReadWriteOncePod` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-app-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+```
+
+</details>
+
+## Autoscaler … für Deployment … min … max … {#k8s-hpa}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Autoscaler [1] für Deployment [2] min [3] max [4]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_hpa`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app-hpa` |  |
+| 2 | `TARGET` | Text | `demo-app` |  |
+| 3 | `MIN` | Zahl | `2` |  |
+| 4 | `MAX` | Zahl | `5` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: demo-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: demo-app
+  minReplicas: 2
+  maxReplicas: 5
+```
+
+</details>
+
+## ImageStream … lokaler Lookup … {#k8s-imagestream}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>ImageStream [1] lokaler Lookup [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_imagestream`
+
+> OpenShift ImageStream: Ziel für BuildConfig-Images.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `LOCAL` | Häkchen | aus |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: demo-app
+spec:
+  lookupPolicy:
+    local: false
+```
+
+</details>
+
+## BuildConfig … → ImageStreamTag … Ablauf … {#k8s-buildconfig}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>BuildConfig [1] → ImageStreamTag [2] Ablauf [3]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_buildconfig`
+
+> OpenShift BuildConfig: baut ein Image aus Git und schiebt es in einen ImageStream.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app-build` |  |
+| 2 | `OUT` | Text | `demo-app:latest` |  |
+| 3 | `RUN` | Auswahl | `Serial` | `Serial`, `Parallel`, `SerialLatestOnly` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo-app-build
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo-app:latest
+```
+
+</details>
+
+## ServiceAccount … {#k8s-serviceaccount}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>ServiceAccount [1]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_serviceaccount`
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: demo-app
+```
+
+</details>
+
+## Eigene Ressource … kind … apiVersion … {#k8s-custom}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>Eigene Ressource [1] kind [2] apiVersion [3]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_custom`
+
+> Für jede andere Ressource. Nutze die Extras-Blöcke für den Inhalt.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `my-resource` |  |
+| 2 | `KIND` | Text | `Certificate` |  |
+| 3 | `API` | Text | `cert-manager.io/v1` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: my-resource
+```
+
+</details>

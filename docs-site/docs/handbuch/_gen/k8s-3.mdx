@@ -1,0 +1,172 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[ConfigMap web-config]
+  [Eintrag LOG_LEVEL = info]
+  [Eintrag FEATURE_X = true]
+
+[Secret web-secret Typ Opaque]
+  [Eintrag API_TOKEN = change-me]
+
+[Speicher (PVC) web-uploads Größe 2Gi Zugriff ReadWriteOnce]
+
+[Deployment web Replicas 2]
+  [Volume uploads aus PVC web-uploads]
+  [Container web Image ghcr.io/example/web:1.4.0]
+    [Port 8080 Name http TCP]
+    [alle Variablen aus ConfigMap web-config]
+    [alle Variablen aus Secret web-secret]
+    [Volume uploads einhängen in /app/uploads nur lesen ☐]
+    [mindestens (requests) CPU 100m RAM 128Mi]
+    [Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port http nach 3 s alle 10 s]
+
+[Service web für App web Typ ClusterIP]
+  [Port 80 → Ziel http Name http TCP]
+
+[Ingress web Klasse nginx]
+  [cert-manager Issuer letsencrypt]
+  [TLS für web.example.com mit Secret web-tls]
+  [Regel Host web.example.com Pfad / → Service web Port http]
+
+[Autoscaler web für Deployment web min 2 max 6]
+  [Ziel CPU Auslastung 75 %]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: web-config
+data:
+  LOG_LEVEL: info
+  FEATURE_X: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: web-secret
+type: Opaque
+stringData:
+  API_TOKEN: change-me
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: web-uploads
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web:1.4.0
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: web-config
+            - secretRef:
+                name: web-secret
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: web-uploads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - web.example.com
+      secretName: web-tls
+  rules:
+    - host: web.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+```
+
+</TabItem>
+</Tabs>

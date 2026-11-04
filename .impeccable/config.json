@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "createdAt": "2026-11-04T21:19:58.210Z",
+        "reason": "agent: Helvetica Neue/Arial stack deliberately matches Scratch UI look the user requested via screenshots"
+      }
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: shop
+    namespace: shop-prod
+    uid: 6f1c-aaaa
+    resourceVersion: "123456"
+    creationTimestamp: "2026-10-01T10:00:00Z"
+  spec:
+    replicas: 3
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: shop
+    template:
+      metadata:
+        labels:
+          app: shop
+      spec:
+        containers:
+        - name: web
+          image: registry.example.com/shop:2.1
+          ports:
+          - containerPort: 8080
+            name: http
+          env:
+          - name: TZ
+            value: Europe/Berlin
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+  status:
+    availableReplicas: 3
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: shop
+  spec:
+    selector:
+      app: shop
+    ports:
+    - name: http
+      port: 80
+      targetPort: 8080

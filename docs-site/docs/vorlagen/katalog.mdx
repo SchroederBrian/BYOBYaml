@@ -1,0 +1,1447 @@
+---
+title: Mitgelieferte Vorlagen
+sidebar_label: Vorlagen-Katalog
+sidebar_position: 2
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# Mitgelieferte Vorlagen
+
+BYOBYaml bringt 43 Vorlagen mit. Du findest sie im Editor unter **Vorlagen** in der Palette. Zieh eine Vorlage auf die Fläche oder direkt an die passende Stelle in einem Stapel.
+
+## Docker Compose
+
+### Datenbanken
+
+#### PostgreSQL
+
+Service mit Volume, Healthcheck und Restart
+
+- `Service db Image postgres:16-alpine`
+  - `Variable POSTGRES_USER = app`
+  - `Variable POSTGRES_PASSWORD = change-me`
+  - `Variable POSTGRES_DB = app`
+  - `Volume pgdata → /var/lib/postgresql/data nur lesen ☐`
+  - `Healthcheck pg_isready -U app alle 10s Timeout 5s Versuche 5`
+  - `Neustart unless-stopped`
+- `Volume pgdata Treiber Standard`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U app
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  pgdata:
+```
+
+</details>
+
+#### MariaDB
+
+Service mit Volume und Healthcheck
+
+- `Service mariadb Image mariadb:11`
+  - `Variable MARIADB_ROOT_PASSWORD = change-me`
+  - `Variable MARIADB_DATABASE = app`
+  - `Volume mariadb → /var/lib/mysql nur lesen ☐`
+  - `Healthcheck healthcheck.sh --connect --innodb_initialized alle 10s Timeout 5s Versuche 5`
+  - `Neustart unless-stopped`
+- `Volume mariadb Treiber Standard`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_ROOT_PASSWORD: change-me
+      MARIADB_DATABASE: app
+    volumes:
+      - mariadb:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - healthcheck.sh --connect --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  mariadb:
+```
+
+</details>
+
+#### Redis (persistent)
+
+AOF-Persistenz und Volume
+
+- `Service redis Image redis:7-alpine`
+  - `Command redis-server --appendonly yes`
+  - `Volume redis → /data nur lesen ☐`
+  - `Healthcheck redis-cli ping alle 10s Timeout 3s Versuche 5`
+  - `Neustart unless-stopped`
+- `Volume redis Treiber Standard`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - --appendonly
+      - yes
+    volumes:
+      - redis:/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - redis-cli ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  redis:
+```
+
+</details>
+
+### Web
+
+#### App aus Dockerfile
+
+Build, Port, Env, wartet auf gesunde DB
+
+- `Service app Image `
+  - `Build Ordner . Dockerfile Dockerfile`
+  - `Port Host 8080 → Container 3000 tcp`
+  - `Variablen aus Datei .env`
+  - `wartet auf db bis gesund`
+  - `Neustart unless-stopped`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  app:
+    build: .
+    ports:
+      - "8080:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+```
+
+</details>
+
+#### Nginx Reverse Proxy
+
+Ports 80/443 und Config read-only
+
+- `Service proxy Image nginx:1.27-alpine`
+  - `Port Host 80 → Container 80 tcp`
+  - `Port Host 443 → Container 443 tcp`
+  - `Volume ./nginx.conf → /etc/nginx/nginx.conf nur lesen ☑`
+  - `Volume ./certs → /etc/nginx/certs nur lesen ☑`
+  - `Neustart unless-stopped`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  proxy:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    restart: unless-stopped
+```
+
+</details>
+
+#### Traefik Labels
+
+Routing-Labels für einen Service (in Service legen)
+
+- `Label traefik.enable = true`
+- `Label traefik.http.routers.app.rule = Host(ˋapp.example.comˋ)`
+- `Label traefik.http.routers.app.entrypoints = websecure`
+- `Label traefik.http.routers.app.tls.certresolver = le`
+- `Label traefik.http.services.app.loadbalancer.server.port = 3000`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.app.rule: Host(`app.example.com`)
+      traefik.http.routers.app.entrypoints: websecure
+      traefik.http.routers.app.tls.certresolver: le
+      traefik.http.services.app.loadbalancer.server.port: "3000"
+```
+
+</details>
+
+### Tools
+
+#### Adminer
+
+DB-Weboberfläche auf Port 8081
+
+- `Service adminer Image adminer:4`
+  - `Port Host 8081 → Container 8080 tcp`
+  - `wartet auf db bis gestartet`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  adminer:
+    image: adminer:4
+    ports:
+      - "8081:8080"
+    depends_on:
+      db:
+        condition: service_started
+```
+
+</details>
+
+#### Mailpit (Dev-Mail)
+
+SMTP 1025, Web-UI 8025
+
+- `Service mailpit Image axllent/mailpit:latest`
+  - `Port Host 8025 → Container 8025 tcp`
+  - `Port Host 1025 → Container 1025 tcp`
+  - `nur im Profil dev`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    profiles:
+      - dev
+```
+
+</details>
+
+### Betrieb
+
+#### HTTP-Healthcheck
+
+curl gegen /health (in Service legen)
+
+- `Healthcheck curl -fsS http://localhost:3000/health || exit 1 alle 30s Timeout 5s Versuche 3`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -fsS http://localhost:3000/health || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+```
+
+</details>
+
+#### Log-Rotation
+
+json-file 10 MB × 3 (in Service legen)
+
+- `Logging json-file max. Größe 10m Dateien 3`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+```
+
+</details>
+
+#### Ressourcen-Limits
+
+CPU/RAM-Limit und Replicas (in Service legen)
+
+- `Limit CPU 1.0 RAM 512M`
+- `Replicas 2`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+      replicas: 2
+```
+
+</details>
+
+#### Gehärteter Service
+
+read-only, init, non-root (in Service legen)
+
+- `schalte read_only ein`
+- `schalte init ein`
+- `Option user = 1000:1000`
+- `Feld security_opt = ["no-new-privileges:true"]`
+- `Feld cap_drop = [ALL]`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    read_only: true
+    init: true
+    user: 1000:1000
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+```
+
+</details>
+
+#### Frontend/Backend-Netze
+
+Zwei getrennte Netzwerke
+
+- `Netzwerk frontend Treiber bridge extern ☐`
+- `Netzwerk backend Treiber bridge extern ☐`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+```
+
+</details>
+
+## Kubernetes & OpenShift
+
+### Workloads
+
+#### Web-Deployment
+
+Container mit Port, Ressourcen und Probes
+
+- `Deployment web Replicas 2`
+- `Container web Image registry.example.com/web:1.0`
+  - `Port 8080 Name http TCP`
+  - `mindestens (requests) CPU 100m RAM 128Mi`
+  - `höchstens (limits) CPU 500m RAM 512Mi`
+  - `Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port http nach 5 s alle 10 s`
+  - `Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port http nach 15 s alle 20 s`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: registry.example.com/web:1.0
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+```
+
+</details>
+
+#### PostgreSQL StatefulSet
+
+Mit Speicher pro Pod und Secret-Passwort
+
+- `StatefulSet postgres Replicas 1 Service postgres`
+- `pro Pod Speicher data Größe 10Gi`
+- `Container postgres Image postgres:16`
+  - `Port 5432 Name pg TCP`
+  - `Variable POSTGRES_PASSWORD aus Secret postgres Schlüssel password`
+  - `Variable PGDATA = /var/lib/postgresql/data/pgdata`
+  - `Volume data einhängen in /var/lib/postgresql/data nur lesen ☐`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - name: pg
+              containerPort: 5432
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+```
+
+</details>
+
+#### CronJob Backup
+
+Nächtlich 02:00, kein paralleler Lauf
+
+- `CronJob backup Zeitplan 0 2 * * *`
+- `Feld spec.concurrencyPolicy = Forbid`
+- `Container backup Image alpine:3.20`
+  - `Command /bin/sh -c "echo backup"`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+spec:
+  schedule: 0 2 * * *
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup
+        spec:
+          containers:
+            - name: backup
+              image: alpine:3.20
+              command:
+                - /bin/sh
+                - -c
+                - echo backup
+          restartPolicy: OnFailure
+  concurrencyPolicy: Forbid
+```
+
+</details>
+
+#### Job DB-Migration
+
+Einmaliger Job mit Secret-Env
+
+- `Job migrate Versuche 2`
+- `Container migrate Image registry.example.com/web:1.0`
+  - `Command bin/migrate --all`
+  - `alle Variablen aus Secret db-credentials`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app: migrate
+    spec:
+      containers:
+        - name: migrate
+          image: registry.example.com/web:1.0
+          command:
+            - bin/migrate
+            - --all
+          envFrom:
+            - secretRef:
+                name: db-credentials
+      restartPolicy: Never
+```
+
+</details>
+
+### Pod
+
+#### Init-Container: auf DB warten
+
+Wartet bis Port 5432 erreichbar ist (unter Deployment)
+
+- `Init-Container wait-for-db Image busybox:1.36`
+  - `Command /bin/sh -c "until nc -z postgres 5432; do sleep 2; done"`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - until nc -z postgres 5432; do sleep 2; done
+```
+
+</details>
+
+#### PVC einhängen
+
+Volume aus PVC + Container-Mount (unter Deployment)
+
+- `Volume data aus PVC app-data`
+- `Container app Image nginx:latest`
+  - `Volume data einhängen in /data nur lesen ☐`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: app-data
+```
+
+</details>
+
+#### Prometheus-Scraping
+
+Pod-Annotationen (unter Deployment)
+
+- `Pod-Annotation prometheus.io/scrape = true`
+- `Pod-Annotation prometheus.io/port = 9090`
+- `Pod-Annotation prometheus.io/path = /metrics`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: /metrics
+```
+
+</details>
+
+#### Pods verteilen
+
+Anti-Affinity über Nodes (unter Deployment)
+
+- `Feld spec.template.spec.topologySpreadConstraints = [{maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: ScheduleAnyway, labelSelector: {matchLabels: {app: web}}}]`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+spec:
+  template:
+    spec:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: web
+```
+
+</details>
+
+#### Dedizierte Nodes
+
+nodeSelector + Toleration (unter Deployment)
+
+- `nur auf Nodes mit node-role.kubernetes.io/app = `
+- `zu Liste spec.template.spec.tolerations hinzufügen {key: dedicated, operator: Equal, value: app, effect: NoSchedule}`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/app: ""
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: app
+          effect: NoSchedule
+```
+
+</details>
+
+#### Non-root Pod
+
+runAsNonRoot + fsGroup (unter Deployment)
+
+- `Pod läuft nicht als root ☑ fsGroup 1000`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 1000
+```
+
+</details>
+
+### Container
+
+#### Config aus ConfigMap + Secret
+
+envFrom für beide (in Container legen)
+
+- `alle Variablen aus ConfigMap app-config`
+- `alle Variablen aus Secret app-secret`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          envFrom:
+            - configMapRef:
+                name: app-config
+            - secretRef:
+                name: app-secret
+```
+
+</details>
+
+#### Probes-Set
+
+Startup, Liveness, Readiness (in Container legen)
+
+- `Gestartet? (startup) prüfen per HTTP GET Pfad /healthz Port 8080 nach 0 s alle 5 s`
+- `Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port 8080 nach 0 s alle 20 s`
+- `Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port 8080 nach 0 s alle 10 s`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 10
+```
+
+</details>
+
+#### Requests & Limits
+
+Kleine Standardgröße (in Container legen)
+
+- `mindestens (requests) CPU 100m RAM 128Mi`
+- `höchstens (limits) CPU 500m RAM 512Mi`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+```
+
+</details>
+
+#### Gehärteter Container
+
+Keine Eskalation, read-only FS, Caps weg (in Container legen)
+
+- `sicher: keine Rechte-Ausweitung ☑ Root-FS nur lesen ☑ alle Capabilities weg ☑`
+- `Feld securityContext.seccompProfile = {type: RuntimeDefault}`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+```
+
+</details>
+
+#### Downward API: Pod-Infos
+
+POD_NAME, POD_NAMESPACE als Env (in Container legen)
+
+- `zu Liste env hinzufügen {name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}`
+- `zu Liste env hinzufügen {name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+env:
+  - name: POD_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  - name: POD_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+```
+
+</details>
+
+### Netzwerk
+
+#### Service HTTP
+
+ClusterIP 80 → 8080
+
+- `Service web für App web Typ ClusterIP`
+- `Port 80 → Ziel 8080 Name http TCP`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+```
+
+</details>
+
+#### Route HTTPS (OpenShift)
+
+Edge-TLS, HTTP → HTTPS
+
+- `Route web → Service web Port http`
+- `HTTPS edge unsicheres HTTP umleiten`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: web
+spec:
+  to:
+    kind: Service
+    name: web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+```
+
+</details>
+
+#### Ingress mit TLS
+
+nginx + cert-manager
+
+- `Ingress web Klasse nginx`
+- `cert-manager Issuer letsencrypt`
+- `TLS für app.example.com mit Secret web-tls`
+- `Regel Host app.example.com Pfad / → Service web Port 80`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - app.example.com
+      secretName: web-tls
+  rules:
+    - host: app.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 80
+```
+
+</details>
+
+#### NetworkPolicy: alles blocken
+
+Default-deny für den Namespace
+
+- `Eigene Ressource default-deny kind NetworkPolicy apiVersion networking.k8s.io/v1`
+- `Feld spec.podSelector = {}`
+- `Feld spec.policyTypes = [Ingress, Egress]`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  policyTypes:
+    - Ingress
+    - Egress
+```
+
+</details>
+
+#### NetworkPolicy: vom Router
+
+Erlaubt OpenShift-Router-Traffic
+
+- `Eigene Ressource allow-from-router kind NetworkPolicy apiVersion networking.k8s.io/v1`
+- `Feld spec.podSelector = {}`
+- `zu Liste spec.ingress hinzufügen {from: [{namespaceSelector: {matchLabels: {network.openshift.io/policy-group: ingress}}}]}`
+- `Feld spec.policyTypes = [Ingress]`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-router
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: ingress
+  policyTypes:
+    - Ingress
+```
+
+</details>
+
+### Config & Speicher
+
+#### ConfigMap App-Settings
+
+Typische Einträge
+
+- `ConfigMap app-config`
+- `Eintrag APP_ENV = production`
+- `Eintrag LOG_LEVEL = info`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: info
+```
+
+</details>
+
+#### Secret Zugangsdaten
+
+Opaque mit stringData
+
+- `Secret app-secret Typ Opaque`
+- `Eintrag DB_USERNAME = app`
+- `Eintrag DB_PASSWORD = change-me`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+type: Opaque
+stringData:
+  DB_USERNAME: app
+  DB_PASSWORD: change-me
+```
+
+</details>
+
+#### Registry Pull-Secret
+
+dockerconfigjson für private Registry
+
+- `Secret registry-credentials Typ kubernetes.io/dockerconfigjson`
+- `Registry-Login registry.example.com User robot Token change-me`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: registry-credentials
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJyZWdpc3RyeS5leGFtcGxlLmNvbSI6eyJ1c2VybmFtZSI6InJvYm90IiwicGFzc3dvcmQiOiJjaGFuZ2UtbWUiLCJhdXRoIjoiY205aWIzUTZZMmhoYm1kbExXMWwifX19
+```
+
+</details>
+
+#### PVC 10 Gi
+
+Mit StorageClass
+
+- `Speicher (PVC) app-data Größe 10Gi Zugriff ReadWriteOnce`
+- `StorageClass standard`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 10Gi
+```
+
+</details>
+
+#### Namespace mit Labels
+
+Inkl. Pod-Security-Level
+
+- `Namespace my-app`
+- `Label pod-security.kubernetes.io/enforce = restricted`
+- `Label app.kubernetes.io/part-of = my-app`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-app
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    app.kubernetes.io/part-of: my-app
+```
+
+</details>
+
+### Build & Skalierung
+
+#### ImageStream
+
+Ziel für Builds
+
+- `ImageStream app lokaler Lookup ☑`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: app
+spec:
+  lookupPolicy:
+    local: true
+```
+
+</details>
+
+#### BuildConfig Docker + Webhook
+
+Git → Dockerfile → ImageStream
+
+- `BuildConfig app-build → ImageStreamTag app:latest Ablauf Serial`
+- `Git Quelle https://github.com/example/app.git Branch main Unterordner `
+- `Docker-Strategie Dockerfile Dockerfile`
+- `Build starten bei Config-Änderung Webhook-Secret `
+- `Build starten bei GitHub Push Webhook-Secret github-webhook`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: app-build
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/example/app.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: app:latest
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secretReference:
+          name: github-webhook
+```
+
+</details>
+
+#### BuildConfig S2I Node.js
+
+Source-to-Image mit Builder aus openshift
+
+- `BuildConfig app-build → ImageStreamTag app:latest Ablauf Serial`
+- `Git Quelle https://github.com/example/app.git Branch main Unterordner `
+- `S2I-Strategie Builder nodejs:20-ubi9 aus Namespace openshift`
+- `Build starten bei Config-Änderung Webhook-Secret `
+- `Build starten bei neuem Basis-Image Webhook-Secret `
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: app-build
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/example/app.git
+      ref: main
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: nodejs:20-ubi9
+        namespace: openshift
+  output:
+    to:
+      kind: ImageStreamTag
+      name: app:latest
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChange: {}
+```
+
+</details>
+
+#### Image-Trigger
+
+Deployment folgt ImageStreamTag (unter Deployment)
+
+- `neues Image aus app:latest → Container app aktualisieren`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"app:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+```
+
+</details>
+
+#### Autoscaler CPU + RAM
+
+2–10 Pods, ruhiges Herunterskalieren
+
+- `Autoscaler web für Deployment web min 2 max 10`
+- `Ziel CPU Auslastung 70 %`
+- `Ziel RAM Auslastung 80 %`
+- `herunterskalieren erst nach 300 Sekunden Ruhe`
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+```
+
+</details>

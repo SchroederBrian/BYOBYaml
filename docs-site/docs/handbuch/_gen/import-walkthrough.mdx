@@ -1,0 +1,100 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="in" label="1 · web.yaml (Eingabe)">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: shop
+  uid: 0b1f-77aa
+  resourceVersion: "48211"
+  creationTimestamp: "2026-10-01T08:00:00Z"
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web:1.4.0
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: TZ
+              value: Europe/Berlin
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+status:
+  readyReplicas: 2
+```
+
+</TabItem>
+<TabItem value="blocks" label="2 · Blöcke nach dem Import">
+
+```text
+[Deployment web Replicas 2]
+  [im Namespace shop]
+  [Container web Image ghcr.io/example/web:1.4.0]
+    [Port 8080 Name http TCP]
+    [Variable TZ = Europe/Berlin]
+    [zu Liste env hinzufügen {"name":"POD_IP","valueFrom":{"fieldRef":{"fieldPath":"status.podIP"}}}]
+  [Feld spec.revisionHistoryLimit = 5]
+```
+
+</TabItem>
+<TabItem value="out" label="3 · Erzeugtes YAML">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: shop
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web:1.4.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TZ
+              value: Europe/Berlin
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+  revisionHistoryLimit: 5
+```
+
+</TabItem>
+</Tabs>
+
+:::info Import-Bericht
+- 1 Dokument als Kubernetes/OpenShift importiert.
+- 2 Felder ohne eigenen Block als Extras übernommen.
+- Cluster-Felder entfernt: status, metadata.uid, metadata.resourceVersion, metadata.creationTimestamp.
+:::

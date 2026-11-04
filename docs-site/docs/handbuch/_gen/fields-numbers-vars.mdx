@@ -1,0 +1,39 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Variablen (aktive Umgebung): `REPLICAS` = `3` · `TAG` = `1.4.0`
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[Deployment web Replicas ${REPLICAS}]
+  [Container web Image ghcr.io/example/web:${TAG}]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web:1.4.0
+```
+
+</TabItem>
+</Tabs>

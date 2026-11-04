@@ -1,0 +1,129 @@
+---
+title: "Extras"
+sidebar_label: "Extras"
+sidebar_position: 11
+description: "Notausgänge für alles ohne eigenen Block."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#5f6b82' }} /> Extras
+
+Notausgänge für alles ohne eigenen Block. Sie wirken auf das **aktuelle Objekt**: unter einem Startblock die Ressource, in einem Service den Service, in einem Container den Container.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Feld … = …](#x-field) | Stapel | überall |
+| [zu Liste … hinzufügen …](#x-list) | Stapel | überall |
+| [YAML einmischen …](#x-yaml) | Stapel | überall |
+| [Notiz …](#x-comment) | Stapel | überall |
+
+## Feld … = … {#x-field}
+
+<div className="block-sig" style={{ '--c': '#5f6b82' }}>Feld [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `x_field`
+
+> Setzt ein beliebiges Feld (Pfad mit Punkten) im aktuellen Objekt: Ressource, Service oder Container. Werte wie 5, true, [a, b] werden erkannt.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PATH` | Text | `spec.template.spec.hostNetwork` |  |
+| 2 | `VAL` | Text | `true` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+spec:
+  template:
+    spec:
+      hostNetwork: true
+```
+
+</details>
+
+## zu Liste … hinzufügen … {#x-list}
+
+<div className="block-sig" style={{ '--c': '#5f6b82' }}>zu Liste [1] hinzufügen [2]</div>
+
+**Stapelblock** · Typ-ID `x_list`
+
+> Hängt einen Eintrag an eine Liste an.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PATH` | Text | `spec.template.spec.tolerations` |  |
+| 2 | `VAL` | Text | `{key: dedicated, operator: Exists}` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+spec:
+  template:
+    spec:
+      tolerations:
+        - key: dedicated
+          operator: Exists
+```
+
+</details>
+
+## YAML einmischen … {#x-yaml}
+
+<div className="block-sig" style={{ '--c': '#5f6b82' }}>YAML einmischen [1]</div>
+
+**Stapelblock** · Typ-ID `x_yaml`
+
+> Mischt YAML (Flow-Schreibweise in einer Zeile) in das aktuelle Objekt.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `Y` | Text | `{spec: {revisionHistoryLimit: 3}}` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+spec:
+  revisionHistoryLimit: 3
+```
+
+</details>
+
+## Notiz … {#x-comment}
+
+<div className="block-sig" style={{ '--c': '#5f6b82' }}>Notiz [1]</div>
+
+**Stapelblock** · Typ-ID `x_comment`
+
+> Nur für dich – erscheint nicht im YAML.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `TXT` | Text | `Hier kommt noch was hin` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+```
+
+</details>

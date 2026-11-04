@@ -1,0 +1,295 @@
+---
+title: "Netzwerk"
+sidebar_label: "Netzwerk"
+sidebar_position: 7
+description: "Ports eines Services, Route- und Ingress-Regeln."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#3a9558' }} /> Netzwerk
+
+Ports eines Services, Route- und Ingress-Regeln.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Port … → Ziel … Name … …](#svc-k8s-port) | Stapel | unter einen Service (gelb) |
+| [NodePort … für Port …](#svc-k8s-nodeport) | Stapel | unter einen Service |
+| [wählt Pods mit … = …](#svc-k8s-selector) | Stapel | unter einen Service |
+| [Hostname …](#route-host) | Stapel | unter eine Route |
+| [Pfad …](#route-path) | Stapel | unter eine Route |
+| [HTTPS … unsicheres HTTP …](#route-tls) | Stapel | unter eine Route |
+| [Regel Host … Pfad … → Service … Port …](#ingress-rule) | Stapel | unter einen Ingress |
+| [TLS für … mit Secret …](#ingress-tls) | Stapel | unter einen Ingress |
+| [cert-manager Issuer …](#ingress-annotation-ssl) | Stapel | unter einen Ingress |
+
+## Port … → Ziel … Name … … {#svc-k8s-port}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>Port [1] → Ziel [2] Name [3] [4]</div>
+
+**Stapelblock** · Typ-ID `svc_k8s_port` · gehört unter einen Service (gelb)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PORT` | Zahl | `80` |  |
+| 2 | `TARGET` | Text | `8080` |  |
+| 3 | `NAME` | Text | `http` |  |
+| 4 | `PROTO` | Auswahl | `TCP` | `TCP`, `UDP` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  selector:
+    app: demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+```
+
+</details>
+
+## NodePort … für Port … {#svc-k8s-nodeport}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>NodePort [1] für Port [2]</div>
+
+**Stapelblock** · Typ-ID `svc_k8s_nodeport` · gehört unter einen Service
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NP` | Zahl | `30080` |  |
+| 2 | `PORT` | Zahl | `80` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  selector:
+    app: demo
+  type: ClusterIP
+```
+
+</details>
+
+## wählt Pods mit … = … {#svc-k8s-selector}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>wählt Pods mit [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `svc_k8s_selector` · gehört unter einen Service
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `tier` |  |
+| 2 | `V` | Text | `frontend` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  selector:
+    app: demo
+    tier: frontend
+  type: ClusterIP
+```
+
+</details>
+
+## Hostname … {#route-host}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>Hostname [1]</div>
+
+**Stapelblock** · Typ-ID `route_host` · gehört unter eine Route
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `HOST` | Text | `demo.apps.example.com` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: demo
+spec:
+  host: demo.apps.example.com
+  to:
+    kind: Service
+    name: demo
+  port:
+    targetPort: http
+```
+
+</details>
+
+## Pfad … {#route-path}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>Pfad [1]</div>
+
+**Stapelblock** · Typ-ID `route_path` · gehört unter eine Route
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PATH` | Text | `/` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: demo
+spec:
+  path: /
+  to:
+    kind: Service
+    name: demo
+  port:
+    targetPort: http
+```
+
+</details>
+
+## HTTPS … unsicheres HTTP … {#route-tls}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>HTTPS [1] unsicheres HTTP [2]</div>
+
+**Stapelblock** · Typ-ID `route_tls` · gehört unter eine Route
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `TERM` | Auswahl | `edge` | `edge`, `passthrough`, `reencrypt` |
+| 2 | `INSEC` | Auswahl | `umleiten` | `umleiten` → `Redirect`, `erlauben` → `Allow`, `blockieren` → `None` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: demo
+spec:
+  to:
+    kind: Service
+    name: demo
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+```
+
+</details>
+
+## Regel Host … Pfad … → Service … Port … {#ingress-rule}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>Regel Host [1] Pfad [2] → Service [3] Port [4]</div>
+
+**Stapelblock** · Typ-ID `ingress_rule` · gehört unter einen Ingress
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `HOST` | Text | `demo.example.com` |  |
+| 2 | `PATH` | Text | `/` |  |
+| 3 | `SVC` | Text | `demo-app` |  |
+| 4 | `PORT` | Text | `80` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: demo.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-app
+                port:
+                  number: 80
+```
+
+</details>
+
+## TLS für … mit Secret … {#ingress-tls}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>TLS für [1] mit Secret [2]</div>
+
+**Stapelblock** · Typ-ID `ingress_tls` · gehört unter einen Ingress
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `HOST` | Text | `demo.example.com` |  |
+| 2 | `SECRET` | Text | `demo-tls` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - demo.example.com
+      secretName: demo-tls
+```
+
+</details>
+
+## cert-manager Issuer … {#ingress-annotation-ssl}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>cert-manager Issuer [1]</div>
+
+**Stapelblock** · Typ-ID `ingress_annotation_ssl` · gehört unter einen Ingress
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `ISSUER` | Text | `letsencrypt` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+```
+
+</details>

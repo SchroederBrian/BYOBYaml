@@ -1,0 +1,58 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[Deployment web Replicas 2]
+  [Feld spec.revisionHistoryLimit = 3]
+  [zu Liste spec.template.spec.tolerations hinzufügen {key: dedicated, operator: Exists, effect: NoSchedule}]
+  [YAML einmischen {metadata: {annotations: {app.openshift.io/connects-to: db}}}]
+  [Container web Image ghcr.io/example/web:1.4.0]
+    [Port 8080 Name http TCP]
+    [Feld lifecycle.preStop.exec.command = [sleep, "5"]]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    app.openshift.io/connects-to: db
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/example/web:1.4.0
+          ports:
+            - name: http
+              containerPort: 8080
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sleep
+                  - "5"
+      tolerations:
+        - key: dedicated
+          operator: Exists
+          effect: NoSchedule
+  revisionHistoryLimit: 3
+```
+
+</TabItem>
+</Tabs>

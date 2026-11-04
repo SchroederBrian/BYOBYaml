@@ -1,0 +1,201 @@
+---
+title: "Config & Daten"
+sidebar_label: "Config & Daten"
+sidebar_position: 8
+description: "Inhalte von ConfigMaps und Secrets, Speicher-Optionen für PVCs und StatefulSets."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#b9613a' }} /> Config & Daten
+
+Inhalte von ConfigMaps und Secrets, Speicher-Optionen für PVCs und StatefulSets.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Eintrag … = …](#data-entry) | Stapel | unter eine ConfigMap oder ein Secret |
+| [Registry-Login … User … Token …](#data-registry) | Stapel | unter ein Secret |
+| [Eintrag … = … als base64](#data-base64) | Stapel | unter ein Secret |
+| [StorageClass …](#pvc-class) | Stapel | unter einen Speicher (PVC) |
+| [Volume-Modus …](#pvc-mode) | Stapel | unter einen Speicher (PVC) |
+| [pro Pod Speicher … Größe …](#sts-volume-claim) | Stapel | unter ein StatefulSet |
+
+## Eintrag … = … {#data-entry}
+
+<div className="block-sig" style={{ '--c': '#b9613a' }}>Eintrag [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `data_entry` · gehört unter eine ConfigMap oder ein Secret
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `APP_ENV` |  |
+| 2 | `V` | Text | `production` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo
+data:
+  APP_ENV: production
+```
+
+</details>
+
+## Registry-Login … User … Token … {#data-registry}
+
+<div className="block-sig" style={{ '--c': '#b9613a' }}>Registry-Login [1] User [2] Token [3]</div>
+
+**Stapelblock** · Typ-ID `data_registry` · gehört unter ein Secret
+
+> Erzeugt .dockerconfigjson (base64). Typ des Secrets wird automatisch gesetzt.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `SERVER` | Text | `registry.example.com` |  |
+| 2 | `USER` | Text | `myuser` |  |
+| 3 | `PASS` | Text | `replace-me` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: eyJhdXRocyI6eyJyZWdpc3RyeS5leGFtcGxlLmNvbSI6eyJ1c2VybmFtZSI6Im15dXNlciIsInBhc3N3b3JkIjoicmVwbGFjZS1tZSIsImF1dGgiOiJiWGwxYzJWeU9uSmxjR3hoWTJVdGJXVT0ifX19
+```
+
+</details>
+
+## Eintrag … = … als base64 {#data-base64}
+
+<div className="block-sig" style={{ '--c': '#b9613a' }}>Eintrag [1] = [2] als base64</div>
+
+**Stapelblock** · Typ-ID `data_base64` · gehört unter ein Secret
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `tls.crt` |  |
+| 2 | `V` | Text | `REPLACE_WITH_BASE64` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo
+type: Opaque
+data:
+  tls.crt: REPLACE_WITH_BASE64
+```
+
+</details>
+
+## StorageClass … {#pvc-class}
+
+<div className="block-sig" style={{ '--c': '#b9613a' }}>StorageClass [1]</div>
+
+**Stapelblock** · Typ-ID `pvc_class` · gehört unter einen Speicher (PVC)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `SC` | Text | `gp3-csi` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+</details>
+
+## Volume-Modus … {#pvc-mode}
+
+<div className="block-sig" style={{ '--c': '#b9613a' }}>Volume-Modus [1]</div>
+
+**Stapelblock** · Typ-ID `pvc_mode` · gehört unter einen Speicher (PVC)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `M` | Auswahl | `Filesystem` | `Filesystem`, `Block` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo
+spec:
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+</details>
+
+## pro Pod Speicher … Größe … {#sts-volume-claim}
+
+<div className="block-sig" style={{ '--c': '#b9613a' }}>pro Pod Speicher [1] Größe [2]</div>
+
+**Stapelblock** · Typ-ID `sts_volume_claim` · gehört unter ein StatefulSet
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `data` |  |
+| 2 | `SIZE` | Text | `10Gi` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: demo
+spec:
+  serviceName: demo
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+```
+
+</details>

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+release/
+*.log
+docs-site/build/
+docs-site/.docusaurus/
+docs-site/node_modules/
+.claude/
+.env
+.env.*
+!.env.example
+/BYOBYaml/
+.impeccable/hook.cache.json

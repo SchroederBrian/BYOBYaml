@@ -1,0 +1,542 @@
+---
+title: "Container"
+sidebar_label: "Container"
+sidebar_position: 6
+description: "Einstellungen eines Containers."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#2b8fa8' }} /> Container
+
+Einstellungen eines Containers. Gehören **in** einen `Container`- oder `Init-Container`-Klammerblock.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Image …](#c-image) | Stapel | in einen "Container"-Block |
+| [Port … Name … …](#c-port) | Stapel | in einen "Container"-Block |
+| [Variable … = …](#c-env) | Stapel | in einen "Container"-Block |
+| [Variable … aus … … Schlüssel …](#c-env-ref) | Stapel | in einen "Container"-Block |
+| [alle Variablen aus … …](#c-env-from) | Stapel | in einen "Container"-Block |
+| [… CPU … RAM …](#c-resources) | Stapel | in einen "Container"-Block |
+| [Volume … einhängen in … nur lesen …](#c-mount) | Stapel | in einen "Container"-Block |
+| [Command …](#c-command) | Stapel | in einen "Container"-Block |
+| [Argumente …](#c-args) | Stapel | in einen "Container"-Block |
+| [Image laden …](#c-pull) | Stapel | in einen "Container"-Block |
+| [Arbeitsordner …](#c-workdir) | Stapel | in einen "Container"-Block |
+| [… prüfen per … Pfad … Port … nach … s alle … s](#c-probe) | Stapel | in einen "Container"-Block |
+| [sicher: keine Rechte-Ausweitung … Root-FS nur lesen … alle Capabilities weg …](#c-security) | Stapel | in einen "Container"-Block |
+
+## Image … {#c-image}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Image [1]</div>
+
+**Stapelblock** · Typ-ID `c_image` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `IMAGE` | Text | `image-registry.openshift-image-registry.svc:5000/demo-project/demo-app:latest` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: image-registry.openshift-image-registry.svc:5000/demo-project/demo-app:latest
+```
+
+</details>
+
+## Port … Name … … {#c-port}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Port [1] Name [2] [3]</div>
+
+**Stapelblock** · Typ-ID `c_port` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PORT` | Zahl | `8080` |  |
+| 2 | `NAME` | Text | *(leer)* |  |
+| 3 | `PROTO` | Auswahl | `TCP` | `TCP`, `UDP`, `SCTP` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          ports:
+            - containerPort: 8080
+```
+
+</details>
+
+## Variable … = … {#c-env}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Variable [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `c_env` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `LOG_LEVEL` |  |
+| 2 | `V` | Text | `info` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          env:
+            - name: LOG_LEVEL
+              value: info
+```
+
+</details>
+
+## Variable … aus … … Schlüssel … {#c-env-ref}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Variable [1] aus [2] [3] Schlüssel [4]</div>
+
+**Stapelblock** · Typ-ID `c_env_ref` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `DB_PASSWORD` |  |
+| 2 | `SRC` | Auswahl | `Secret` | `Secret` → `secretKeyRef`, `ConfigMap` → `configMapKeyRef` |
+| 3 | `NAME` | Text | `demo-app-secret` |  |
+| 4 | `KEY` | Text | `DB_PASSWORD` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: demo-app-secret
+                  key: DB_PASSWORD
+```
+
+</details>
+
+## alle Variablen aus … … {#c-env-from}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>alle Variablen aus [1] [2]</div>
+
+**Stapelblock** · Typ-ID `c_env_from` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `SRC` | Auswahl | `ConfigMap` | `ConfigMap` → `configMapRef`, `Secret` → `secretRef` |
+| 2 | `NAME` | Text | `demo-app-config` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          envFrom:
+            - configMapRef:
+                name: demo-app-config
+```
+
+</details>
+
+## … CPU … RAM … {#c-resources}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>[1] CPU [2] RAM [3]</div>
+
+**Stapelblock** · Typ-ID `c_resources` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `KIND` | Auswahl | `mindestens (requests)` | `mindestens (requests)` → `requests`, `höchstens (limits)` → `limits` |
+| 2 | `CPU` | Text | `100m` |  |
+| 3 | `MEM` | Text | `128Mi` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+```
+
+</details>
+
+## Volume … einhängen in … nur lesen … {#c-mount}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Volume [1] einhängen in [2] nur lesen [3]</div>
+
+**Stapelblock** · Typ-ID `c_mount` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `data` |  |
+| 2 | `PATH` | Text | `/data` |  |
+| 3 | `RO` | Häkchen | aus |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          volumeMounts:
+            - name: data
+              mountPath: /data
+```
+
+</details>
+
+## Command … {#c-command}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Command [1]</div>
+
+**Stapelblock** · Typ-ID `c_command` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `CMD` | Text | `/bin/sh -c "echo hallo"` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          command:
+            - /bin/sh
+            - -c
+            - echo hallo
+```
+
+</details>
+
+## Argumente … {#c-args}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Argumente [1]</div>
+
+**Stapelblock** · Typ-ID `c_args` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `ARGS` | Text | `--port 8080` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          args:
+            - --port
+            - "8080"
+```
+
+</details>
+
+## Image laden … {#c-pull}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Image laden [1]</div>
+
+**Stapelblock** · Typ-ID `c_pull` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `P` | Auswahl | `IfNotPresent` | `IfNotPresent`, `Always`, `Never` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          imagePullPolicy: IfNotPresent
+```
+
+</details>
+
+## Arbeitsordner … {#c-workdir}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>Arbeitsordner [1]</div>
+
+**Stapelblock** · Typ-ID `c_workdir` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `DIR` | Text | `/app` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          workingDir: /app
+```
+
+</details>
+
+## … prüfen per … Pfad … Port … nach … s alle … s {#c-probe}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>[1] prüfen per [2] Pfad [3] Port [4] nach [5] s alle [6] s</div>
+
+**Stapelblock** · Typ-ID `c_probe` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `KIND` | Auswahl | `Lebt? (liveness)` | `Lebt? (liveness)` → `livenessProbe`, `Bereit? (readiness)` → `readinessProbe`, `Gestartet? (startup)` → `startupProbe` |
+| 2 | `HOW` | Auswahl | `HTTP GET` | `HTTP GET` → `http`, `TCP` → `tcp` |
+| 3 | `PATH` | Text | `/healthz` |  |
+| 4 | `PORT` | Text | `8080` |  |
+| 5 | `DELAY` | Zahl | `5` |  |
+| 6 | `PERIOD` | Zahl | `10` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+```
+
+</details>
+
+## sicher: keine Rechte-Ausweitung … Root-FS nur lesen … alle Capabilities weg … {#c-security}
+
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>sicher: keine Rechte-Ausweitung [1] Root-FS nur lesen [2] alle Capabilities weg [3]</div>
+
+**Stapelblock** · Typ-ID `c_security` · gehört in einen "Container"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NOESC` | Häkchen | an |  |
+| 2 | `ROFS` | Häkchen | aus |  |
+| 3 | `DROP` | Häkchen | an |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+```
+
+</details>

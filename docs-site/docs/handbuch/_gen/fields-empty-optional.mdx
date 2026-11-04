@@ -1,0 +1,35 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[Ingress web Klasse ]
+  [Regel Host Pfad / → Service web Port http]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: web
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  name: http
+```
+
+</TabItem>
+</Tabs>

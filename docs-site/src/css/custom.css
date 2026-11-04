@@ -1,0 +1,177 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+
+:root {
+  --ifm-font-family-base: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --ifm-font-family-monospace: 'IBM Plex Mono', 'Cascadia Code', Consolas, monospace;
+  --ifm-heading-font-weight: 600;
+  --ifm-color-primary: #3e6fe0;
+  --ifm-color-primary-dark: #2f61d6;
+  --ifm-color-primary-darker: #2c5bca;
+  --ifm-color-primary-darkest: #244ba6;
+  --ifm-color-primary-light: #5580e4;
+  --ifm-color-primary-lighter: #6088e6;
+  --ifm-color-primary-lightest: #81a1eb;
+  --ifm-code-font-size: 90%;
+  --ifm-navbar-height: 3.25rem;
+  --ifm-global-radius: 6px;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #7aa2ff;
+  --ifm-color-primary-dark: #5b8bff;
+  --ifm-color-primary-darker: #4c80ff;
+  --ifm-color-primary-darkest: #1e5eff;
+  --ifm-color-primary-light: #99b9ff;
+  --ifm-color-primary-lighter: #a8c3ff;
+  --ifm-color-primary-lightest: #d6e3ff;
+  --ifm-background-color: #13161c;
+  --ifm-background-surface-color: #171a21;
+  --ifm-navbar-background-color: #0d0f13;
+  --ifm-footer-background-color: #0d0f13;
+  --ifm-toc-border-color: #252a34;
+  --ifm-color-emphasis-200: #252a34;
+  --ifm-color-emphasis-300: #323845;
+  --ifm-font-color-base: #d6dbe4;
+  --ifm-color-content-secondary: #9ba4b4;
+  --ifm-code-background: #1e222b;
+  --ifm-table-stripe-background: rgba(255, 255, 255, 0.02);
+  --ifm-table-border-color: #252a34;
+  --ifm-hr-background-color: #252a34;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.06);
+  --ifm-menu-color-background-active: rgba(122, 162, 255, 0.12);
+  --ifm-menu-color-background-hover: #1e222b;
+}
+
+[data-theme='dark'] .navbar {
+  border-bottom: 1px solid #252a34;
+  box-shadow: none;
+}
+[data-theme='dark'] .theme-doc-sidebar-container {
+  border-right-color: #252a34 !important;
+}
+[data-theme='dark'] .footer--dark {
+  border-top: 1px solid #252a34;
+}
+
+.markdown h1 {
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+}
+.markdown h2 {
+  font-size: 1.4rem;
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+.markdown table {
+  display: table;
+  width: 100%;
+  font-size: 0.9rem;
+}
+.markdown details {
+  --ifm-alert-background-color: var(--ifm-background-surface-color);
+  --ifm-alert-border-color: var(--ifm-toc-border-color);
+  border: 1px solid var(--ifm-toc-border-color);
+  box-shadow: none;
+}
+
+/* category colour dot + block signature (reference pages) */
+.cat-dot {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 3px;
+  vertical-align: 0.15em;
+  margin-right: 0.15em;
+}
+.block-sig {
+  display: inline-block;
+  padding: 6px 12px;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  background: var(--c);
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.9rem;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* simple block mock used in guides: <span class="blk" style={{'--c':'#3f7fd8'}}>…</span> */
+.blk {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: var(--c, #5f6b82);
+  color: #fff;
+  font-size: 0.85em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+kbd {
+  font-family: var(--ifm-font-family-monospace);
+  font-size: 0.8em;
+}
+
+/* ---------- Handbuch: block trees + screenshots ---------- */
+.blk-tree {
+  padding: 14px 16px;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  background: #13161c;
+  background-image: radial-gradient(#232833 1px, transparent 1px);
+  background-size: 16px 16px;
+  overflow-x: auto;
+}
+.blk-row {
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.blk-row .blk {
+  padding: 6px 10px;
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.22);
+}
+.blk-row .blk-hat {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding-top: 9px;
+}
+.blk-gap {
+  height: 14px;
+}
+.kind-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-family: var(--ifm-font-family-monospace);
+  padding: 1px 8px;
+  margin-right: 6px;
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 99px;
+  color: var(--ifm-color-primary);
+}
+.markdown img {
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  margin: 0.25rem 0 0.75rem;
+}
+.markdown figure {
+  margin: 0 0 1.5rem;
+}
+.markdown figcaption {
+  font-size: 0.85rem;
+  color: var(--ifm-color-content-secondary);
+}
+.legend {
+  counter-reset: none;
+}
+.legend li::marker {
+  font-weight: 700;
+  color: #ffcc4d;
+}

@@ -1,0 +1,554 @@
+---
+title: "Pod"
+sidebar_label: "Pod"
+sidebar_position: 5
+description: "Einstellungen auf Pod-Ebene."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#c9702a' }} /> Pod
+
+Einstellungen auf Pod-Ebene. Gehören unter Deployment, StatefulSet, DaemonSet, Job oder CronJob.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Container … Image …](#pod-container) | Klammer | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Init-Container … Image …](#pod-init-container) | Klammer | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Pod-Label … = …](#pod-label) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Pod-Annotation … = …](#pod-annotation) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Image Pull Secret …](#pod-pull-secret) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [läuft als ServiceAccount …](#pod-service-account) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Volume … aus PVC …](#pod-vol-pvc) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Volume … aus ConfigMap …](#pod-vol-cm) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Volume … aus Secret …](#pod-vol-secret) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [leeres Volume … im RAM …](#pod-vol-empty) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [nur auf Nodes mit … = …](#pod-node-selector) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Neustart-Regel …](#pod-restart-policy) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Update-Strategie …](#pod-strategy) | Stapel | unter ein Deployment |
+| [Pod läuft nicht als root … fsGroup …](#pod-security) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+| [Beenden-Wartezeit … Sekunden](#pod-grace) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
+
+## Container … Image … {#pod-container}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Container [1] Image [2]</div>
+
+**Klammerblock – nimmt weitere Blöcke auf** · Typ-ID `pod_container` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+> Ein Container im Pod. Lege Container-Blöcke (hellblau) hinein.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `IMAGE` | Text | `nginx:latest` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: demo-app
+          image: nginx:latest
+```
+
+</details>
+
+## Init-Container … Image … {#pod-init-container}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Init-Container [1] Image [2]</div>
+
+**Klammerblock – nimmt weitere Blöcke auf** · Typ-ID `pod_init_container` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `wait-for-db` |  |
+| 2 | `IMAGE` | Text | `busybox:1.36` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+```
+
+</details>
+
+## Pod-Label … = … {#pod-label}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Pod-Label [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `pod_label` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `version` |  |
+| 2 | `V` | Text | `v1` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+        version: v1
+```
+
+</details>
+
+## Pod-Annotation … = … {#pod-annotation}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Pod-Annotation [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `pod_annotation` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `prometheus.io/scrape` |  |
+| 2 | `V` | Text | `true` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+      annotations:
+        prometheus.io/scrape: "true"
+```
+
+</details>
+
+## Image Pull Secret … {#pod-pull-secret}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Image Pull Secret [1]</div>
+
+**Stapelblock** · Typ-ID `pod_pull_secret` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `registry-credentials` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      imagePullSecrets:
+        - name: registry-credentials
+```
+
+</details>
+
+## läuft als ServiceAccount … {#pod-service-account}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>läuft als ServiceAccount [1]</div>
+
+**Stapelblock** · Typ-ID `pod_service_account` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      serviceAccountName: demo-app
+```
+
+</details>
+
+## Volume … aus PVC … {#pod-vol-pvc}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Volume [1] aus PVC [2]</div>
+
+**Stapelblock** · Typ-ID `pod_vol_pvc` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `data` |  |
+| 2 | `CLAIM` | Text | `demo-app-data` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: demo-app-data
+```
+
+</details>
+
+## Volume … aus ConfigMap … {#pod-vol-cm}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Volume [1] aus ConfigMap [2]</div>
+
+**Stapelblock** · Typ-ID `pod_vol_cm` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `config` |  |
+| 2 | `CM` | Text | `demo-app-config` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      volumes:
+        - name: config
+          configMap:
+            name: demo-app-config
+```
+
+</details>
+
+## Volume … aus Secret … {#pod-vol-secret}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Volume [1] aus Secret [2]</div>
+
+**Stapelblock** · Typ-ID `pod_vol_secret` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `certs` |  |
+| 2 | `SECRET` | Text | `demo-app-tls` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      volumes:
+        - name: certs
+          secret:
+            secretName: demo-app-tls
+```
+
+</details>
+
+## leeres Volume … im RAM … {#pod-vol-empty}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>leeres Volume [1] im RAM [2]</div>
+
+**Stapelblock** · Typ-ID `pod_vol_empty` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `tmp` |  |
+| 2 | `MEM` | Häkchen | aus |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      volumes:
+        - name: tmp
+          emptyDir: {}
+```
+
+</details>
+
+## nur auf Nodes mit … = … {#pod-node-selector}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>nur auf Nodes mit [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `pod_node_selector` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `node-role.kubernetes.io/worker` |  |
+| 2 | `V` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/worker: ""
+```
+
+</details>
+
+## Neustart-Regel … {#pod-restart-policy}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Neustart-Regel [1]</div>
+
+**Stapelblock** · Typ-ID `pod_restart_policy` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `R` | Auswahl | `Always` | `Always`, `OnFailure`, `Never` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      restartPolicy: Always
+```
+
+</details>
+
+## Update-Strategie … {#pod-strategy}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Update-Strategie [1]</div>
+
+**Stapelblock** · Typ-ID `pod_strategy` · gehört unter ein Deployment
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Auswahl | `RollingUpdate` | `RollingUpdate`, `Recreate` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+```
+
+</details>
+
+## Pod läuft nicht als root … fsGroup … {#pod-security}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Pod läuft nicht als root [1] fsGroup [2]</div>
+
+**Stapelblock** · Typ-ID `pod_security` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NONROOT` | Häkchen | an |  |
+| 2 | `FSGROUP` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      securityContext:
+        runAsNonRoot: true
+```
+
+</details>
+
+## Beenden-Wartezeit … Sekunden {#pod-grace}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>Beenden-Wartezeit [1] Sekunden</div>
+
+**Stapelblock** · Typ-ID `pod_grace` · gehört unter ein Deployment, StatefulSet, Job oder CronJob
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Zahl | `30` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      terminationGracePeriodSeconds: 30
+```
+
+</details>

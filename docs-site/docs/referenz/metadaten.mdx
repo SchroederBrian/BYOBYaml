@@ -1,0 +1,128 @@
+---
+title: "Metadaten"
+sidebar_label: "Metadaten"
+sidebar_position: 4
+description: "Namespace, Labels und Annotationen einer Ressource."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#ad5aa1' }} /> Metadaten
+
+Namespace, Labels und Annotationen einer Ressource. Passen unter jeden Ressourcen-Startblock.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [im Namespace …](#meta-namespace) | Stapel | unter einen Ressourcen-Startblock (gelb) |
+| [Label … = …](#meta-label) | Stapel | unter einen Ressourcen-Startblock (gelb) |
+| [Annotation … = …](#meta-annotation) | Stapel | unter einen Ressourcen-Startblock (gelb) |
+| [neues Image aus … → Container … aktualisieren](#meta-image-trigger) | Stapel | unter ein Deployment / StatefulSet |
+
+## im Namespace … {#meta-namespace}
+
+<div className="block-sig" style={{ '--c': '#ad5aa1' }}>im Namespace [1]</div>
+
+**Stapelblock** · Typ-ID `meta_namespace` · gehört unter einen Ressourcen-Startblock (gelb)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NS` | Text | `demo-project` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo
+  namespace: demo-project
+```
+
+</details>
+
+## Label … = … {#meta-label}
+
+<div className="block-sig" style={{ '--c': '#ad5aa1' }}>Label [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `meta_label` · gehört unter einen Ressourcen-Startblock (gelb)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `app.kubernetes.io/part-of` |  |
+| 2 | `V` | Text | `demo` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo
+  labels:
+    app.kubernetes.io/part-of: demo
+```
+
+</details>
+
+## Annotation … = … {#meta-annotation}
+
+<div className="block-sig" style={{ '--c': '#ad5aa1' }}>Annotation [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `meta_annotation` · gehört unter einen Ressourcen-Startblock (gelb)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `description` |  |
+| 2 | `V` | Text | `Meine App` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo
+  annotations:
+    description: Meine App
+```
+
+</details>
+
+## neues Image aus … → Container … aktualisieren {#meta-image-trigger}
+
+<div className="block-sig" style={{ '--c': '#ad5aa1' }}>neues Image aus [1] → Container [2] aktualisieren</div>
+
+**Stapelblock** · Typ-ID `meta_image_trigger` · gehört unter ein Deployment / StatefulSet
+
+> OpenShift Image-Trigger: aktualisiert den Container, sobald der ImageStreamTag ein neues Image bekommt.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `IST` | Text | `demo-app:latest` |  |
+| 2 | `CONT` | Text | `demo-app` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"demo-app:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"demo-app\")].image"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+```
+
+</details>

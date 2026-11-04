@@ -1,0 +1,281 @@
+---
+title: "Build"
+sidebar_label: "Build"
+sidebar_position: 9
+description: "OpenShift-Builds: ImageStream-Tags und BuildConfig-Quellen, -Strategien und -Trigger."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#bf4c66' }} /> Build
+
+OpenShift-Builds: ImageStream-Tags und BuildConfig-Quellen, -Strategien und -Trigger.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Tag … von externem Image …](#is-tag) | Stapel | unter einen ImageStream |
+| [Git Quelle … Branch … Unterordner …](#bc-git) | Stapel | unter eine BuildConfig |
+| [Git-Zugang aus Secret …](#bc-source-secret) | Stapel | unter eine BuildConfig |
+| [Docker-Strategie Dockerfile …](#bc-docker) | Stapel | unter eine BuildConfig |
+| [S2I-Strategie Builder … aus Namespace …](#bc-s2i) | Stapel | unter eine BuildConfig |
+| [Build-Variable … = …](#bc-build-arg) | Stapel | unter eine BuildConfig nach der Strategie |
+| [Build starten bei … Webhook-Secret …](#bc-trigger) | Stapel | unter eine BuildConfig |
+| [Build-Ressourcen CPU … RAM …](#bc-resources) | Stapel | unter eine BuildConfig |
+
+## Tag … von externem Image … {#is-tag}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Tag [1] von externem Image [2]</div>
+
+**Stapelblock** · Typ-ID `is_tag` · gehört unter einen ImageStream
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `TAG` | Text | `latest` |  |
+| 2 | `FROM` | Text | `quay.io/example/demo-app:1.0` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: demo
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+    - name: latest
+      from:
+        kind: DockerImage
+        name: quay.io/example/demo-app:1.0
+```
+
+</details>
+
+## Git Quelle … Branch … Unterordner … {#bc-git}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Git Quelle [1] Branch [2] Unterordner [3]</div>
+
+**Stapelblock** · Typ-ID `bc_git` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `URI` | Text | `https://github.com/example/demo-app.git` |  |
+| 2 | `REF` | Text | `main` |  |
+| 3 | `DIR` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/example/demo-app.git
+      ref: main
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## Git-Zugang aus Secret … {#bc-source-secret}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Git-Zugang aus Secret [1]</div>
+
+**Stapelblock** · Typ-ID `bc_source_secret` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Text | `git-credentials` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  source:
+    sourceSecret:
+      name: git-credentials
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## Docker-Strategie Dockerfile … {#bc-docker}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Docker-Strategie Dockerfile [1]</div>
+
+**Stapelblock** · Typ-ID `bc_docker` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `FILE` | Text | `Dockerfile` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## S2I-Strategie Builder … aus Namespace … {#bc-s2i}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>S2I-Strategie Builder [1] aus Namespace [2]</div>
+
+**Stapelblock** · Typ-ID `bc_s2i` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `IST` | Text | `nodejs:20-ubi9` |  |
+| 2 | `NS` | Text | `openshift` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: nodejs:20-ubi9
+        namespace: openshift
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## Build-Variable … = … {#bc-build-arg}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Build-Variable [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `bc_build_arg` · gehört unter eine BuildConfig nach der Strategie
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `NODE_ENV` |  |
+| 2 | `V` | Text | `production` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## Build starten bei … Webhook-Secret … {#bc-trigger}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Build starten bei [1] Webhook-Secret [2]</div>
+
+**Stapelblock** · Typ-ID `bc_trigger` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `T` | Auswahl | `Config-Änderung` | `Config-Änderung` → `ConfigChange`, `neuem Basis-Image` → `ImageChange`, `GitHub Push` → `GitHub`, `GitLab Push` → `GitLab`, `Generic Webhook` → `Generic` |
+| 2 | `SECRET` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+  triggers:
+    - type: ConfigChange
+```
+
+</details>
+
+## Build-Ressourcen CPU … RAM … {#bc-resources}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Build-Ressourcen CPU [1] RAM [2]</div>
+
+**Stapelblock** · Typ-ID `bc_resources` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `CPU` | Text | `500m` |  |
+| 2 | `MEM` | Text | `1Gi` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+```
+
+</details>

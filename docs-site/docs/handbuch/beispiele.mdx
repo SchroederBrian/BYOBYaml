@@ -1,0 +1,588 @@
+---
+title: Beispiele zum Nachbauen
+sidebar_label: 8 · Beispiele
+sidebar_position: 8
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# Beispiele zum Nachbauen
+
+Jedes Beispiel zeigt die **Blöcke**, die **Schritte** und das **exakte YAML**, das BYOBYaml daraus erzeugt. Das YAML stammt direkt aus dem Generator der App.
+
+| Beispiel | Art |
+| --- | --- |
+| [Statischer Webserver](#compose-webserver) | Compose |
+| [App wartet auf gesunde Datenbank](#compose-app-db) | Compose |
+| [Image-Tag und Port als Variablen](#compose-variablen) | Compose |
+| [ConfigMap und Secret in einen Container](#k8s-config-secret) | Kubernetes |
+| [Persistenter Speicher](#k8s-pvc) | Kubernetes |
+| [Ingress mit TLS und zwei Pfaden](#k8s-ingress) | Kubernetes |
+| [Route mit eigenem Hostnamen](#openshift-route) | OpenShift |
+| [Nächtlicher CronJob](#k8s-cronjob) | Kubernetes |
+| [Extras: Felder ohne eigenen Block](#k8s-extras) | Kubernetes |
+| [Eigene Ressource: PodDisruptionBudget](#eigene-ressource) | Kubernetes |
+| [Autoscaling nach CPU und RAM](#k8s-hpa) | Kubernetes |
+
+## Statischer Webserver {#compose-webserver}
+
+<span className="kind-tag">Compose</span> Ein nginx, der einen lokalen Ordner read-only ausliefert und nach einem Absturz neu startet.
+
+**So baust du es:**
+
+1. Compose-Datei anlegen; der Startblock *Docker Compose · Projekt* ist schon da.
+2. **Compose → Service** unter den Startblock ziehen, Name `web`, Image `nginx:1.27-alpine`.
+3. **Service → Port** in den Service legen: Host `8080`, Container `80`.
+4. **Service → Volume** in den Service legen: `./html` → `/usr/share/nginx/html`, Häkchen *nur lesen*.
+5. **Service → Neustart** `unless-stopped`.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt website</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service web Image nginx:1.27-alpine</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host 8080 → Container 80 tcp</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Volume ./html → /usr/share/nginx/html nur lesen ☑</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Neustart unless-stopped</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+name: website
+services:
+  web:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./html:/usr/share/nginx/html:ro
+    restart: unless-stopped
+```
+
+:::tip
+Ports schreibt BYOBYaml immer in Anführungszeichen (`"8080:80"`). Sonst kann YAML 1.1 Werte wie `22:22` als Zahl im 60er-System lesen.
+:::
+
+## App wartet auf gesunde Datenbank {#compose-app-db}
+
+<span className="kind-tag">Compose</span> Die App startet erst, wenn PostgreSQL seinen Healthcheck besteht. Die Daten liegen in einem benannten Volume.
+
+**So baust du es:**
+
+1. Service `db` mit Image `postgres:16-alpine`, drei *Variable*-Blöcke für User, Passwort und Datenbank.
+2. *Volume* `pgdata` → `/var/lib/postgresql/data` und *Healthcheck* `pg_isready -U app`.
+3. Service `app` mit leerem Image, dafür *Build Ordner* `.`.
+4. Im Service `app`: *wartet auf* `db` bis **gesund**.
+5. Ganz unten unter dem Startblock: **Compose → Volume** `pgdata`. Benannte Volumes müssen auf oberster Ebene deklariert werden.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt shop</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service db Image postgres:16-alpine</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_USER = app</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_PASSWORD = change-me</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_DB = app</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Volume pgdata → /var/lib/postgresql/data nur lesen ☐</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Healthcheck pg_isready -U app alle 10s Timeout 5s Versuche 5</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service app Image </span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Build Ordner . Dockerfile Dockerfile</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host 3000 → Container 3000 tcp</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable DATABASE_URL = postgres://app:change-me@db:5432/app</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>wartet auf db bis gesund</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Volume pgdata Treiber Standard</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+name: shop
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: app
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U app
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://app:change-me@db:5432/app
+    depends_on:
+      db:
+        condition: service_healthy
+volumes:
+  pgdata:
+```
+
+## Image-Tag und Port als Variablen {#compose-variablen}
+
+<span className="kind-tag">Compose</span> Derselbe Service mit unterschiedlichen Werten je Umgebung. Die Tabelle zeigt die Variablen, das YAML entsteht mit der Umgebung `prod`.
+
+**So baust du es:**
+
+1. Im Tab **Variablen** die Variablen `TAG` und `PORT` anlegen.
+2. In den Blöcken `${TAG}` und `${PORT}` in die Felder schreiben.
+3. Oben rechts die Umgebung `prod` wählen.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt </span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service api Image registry.example.com/api:$&#123;TAG&#125;</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host $&#123;PORT&#125; → Container 8080 tcp</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable RELEASE = api-$&#123;TAG&#125;</span></div>
+</div>
+
+**Ergebnis (Umgebung prod):**
+
+```yaml
+services:
+  api:
+    image: registry.example.com/api:1.4.2
+    ports:
+      - "80:8080"
+    environment:
+      RELEASE: api-1.4.2
+```
+
+| Variable | dev | prod |
+| --- | --- | --- |
+| `TAG` | `latest` | `1.4.2` |
+| `PORT` | `8080` | `80` |
+
+## ConfigMap und Secret in einen Container {#k8s-config-secret}
+
+<span className="kind-tag">Kubernetes</span> Drei Dokumente in einer Datei: ConfigMap, Secret und ein Deployment, das alles als Umgebungsvariablen bekommt.
+
+**So baust du es:**
+
+1. **Ressourcen → ConfigMap** auf die Fläche ziehen, darunter zwei **Config & Daten → Eintrag**-Blöcke.
+2. **Ressourcen → Secret** daneben ziehen, darunter ein Eintrag `DB_PASSWORD`.
+3. Deployment mit Container. Im Container: *alle Variablen aus ConfigMap* und *Variable … aus Secret … Schlüssel …* für einen einzelnen Wert.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>ConfigMap app-config</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#b9613a' }}>Eintrag LOG_LEVEL = info</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#b9613a' }}>Eintrag FEATURE_X = true</span></div>
+<div className="blk-gap" />
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Secret app-secret Typ Opaque</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#b9613a' }}>Eintrag DB_PASSWORD = change-me</span></div>
+<div className="blk-gap" />
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Deployment app Replicas 1</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Container app Image registry.example.com/app:1.0</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>alle Variablen aus ConfigMap app-config</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Variable DB_PASSWORD aus Secret app-secret Schlüssel DB_PASSWORD</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  LOG_LEVEL: info
+  FEATURE_X: "true"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secret
+type: Opaque
+stringData:
+  DB_PASSWORD: change-me
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: app
+          image: registry.example.com/app:1.0
+          envFrom:
+            - configMapRef:
+                name: app-config
+          env:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secret
+                  key: DB_PASSWORD
+```
+
+:::tip
+`stringData` nimmt Klartext an; Kubernetes speichert ihn base64-kodiert. Das ist **keine Verschlüsselung**.
+:::
+
+## Persistenter Speicher {#k8s-pvc}
+
+<span className="kind-tag">Kubernetes</span> Ein PVC wird als Volume im Pod definiert und im Container eingehängt. Der Name `data` verbindet beides.
+
+**So baust du es:**
+
+1. **Ressourcen → Speicher (PVC)** `app-data`, `5Gi`, `ReadWriteOnce`.
+2. Im Deployment: **Pod → Volume aus PVC** mit Name `data` und Claim `app-data`.
+3. Im Container: **Container → Volume einhängen** mit Name `data` und Pfad `/var/lib/app`.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Speicher (PVC) app-data Größe 5Gi Zugriff ReadWriteOnce</span></div>
+<div className="blk-gap" />
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Deployment app Replicas 1</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Volume data aus PVC app-data</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Container app Image registry.example.com/app:1.0</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Volume data einhängen in /var/lib/app nur lesen ☐</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app
+  template:
+    metadata:
+      labels:
+        app: app
+    spec:
+      containers:
+        - name: app
+          image: registry.example.com/app:1.0
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/app
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: app-data
+```
+
+:::tip
+Bei `ReadWriteOnce` kann nur ein Node das Volume einhängen. Für mehrere Replicas auf verschiedenen Nodes brauchst du `ReadWriteMany` oder ein StatefulSet mit *pro Pod Speicher*.
+:::
+
+## Ingress mit TLS und zwei Pfaden {#k8s-ingress}
+
+<span className="kind-tag">Kubernetes</span> Ein Hostname, zwei Backends: `/` geht ans Frontend, `/api` an die API. Das Zertifikat stellt cert-manager aus.
+
+**So baust du es:**
+
+1. **Ressourcen → Ingress** mit Klasse `nginx`.
+2. **Netzwerk → cert-manager Issuer** `letsencrypt` und **TLS für** Host plus Secret-Name.
+3. Zwei **Regel**-Blöcke mit demselben Host. BYOBYaml fasst sie unter einem `host` zusammen.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Ingress shop Klasse nginx</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>cert-manager Issuer letsencrypt</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>TLS für shop.example.com mit Secret shop-tls</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Regel Host shop.example.com Pfad / → Service frontend Port 80</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Regel Host shop.example.com Pfad /api → Service api Port http</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: shop
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - shop.example.com
+      secretName: shop-tls
+  rules:
+    - host: shop.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api
+                port:
+                  name: http
+```
+
+:::tip
+Steht im Port-Feld eine Zahl, wird daraus `port.number`. Steht dort ein Name wie `http`, wird daraus `port.name`.
+:::
+
+## Route mit eigenem Hostnamen {#openshift-route}
+
+<span className="kind-tag">OpenShift</span> Eine HTTPS-Route mit Edge-Termination: HTTP wird auf HTTPS umgeleitet.
+
+**So baust du es:**
+
+1. **Ressourcen → Route** mit Service `web` und Port `http` (Name des Service-Ports).
+2. **Netzwerk → Hostname** und **HTTPS** `edge` mit *umleiten*.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Route web → Service web Port http</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Hostname web.apps.example.com</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>HTTPS edge unsicheres HTTP umleiten</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: web
+spec:
+  host: web.apps.example.com
+  to:
+    kind: Service
+    name: web
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+```
+
+## Nächtlicher CronJob {#k8s-cronjob}
+
+<span className="kind-tag">Kubernetes</span> Ein Backup um 02:00 Uhr. Läuft noch ein alter Job, startet kein neuer; dafür sorgt ein Extras-Feld.
+
+**So baust du es:**
+
+1. **Ressourcen → CronJob** mit Zeitplan `0 2 * * *`.
+2. **Extras → Feld** `spec.concurrencyPolicy` = `Forbid`. Diese Option hat keinen eigenen Block.
+3. Container mit *Command*. Anführungszeichen halten Argumente zusammen.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>CronJob backup Zeitplan 0 2 * * *</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#5f6b82' }}>Feld spec.concurrencyPolicy = Forbid</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Container backup Image alpine:3.20</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Command /bin/sh -c "tar czf /backup/data.tgz /data"</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup
+spec:
+  schedule: 0 2 * * *
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: backup
+        spec:
+          containers:
+            - name: backup
+              image: alpine:3.20
+              command:
+                - /bin/sh
+                - -c
+                - tar czf /backup/data.tgz /data
+          restartPolicy: OnFailure
+  concurrencyPolicy: Forbid
+```
+
+## Extras: Felder ohne eigenen Block {#k8s-extras}
+
+<span className="kind-tag">Kubernetes</span> Tolerations, ein Lifecycle-Hook und ein abweichendes Feld. Alles mit den drei Extras-Blöcken.
+
+**So baust du es:**
+
+1. *zu Liste … hinzufügen* direkt unter dem Deployment: Der Pfad beginnt bei der Ressource (`spec.template.spec.tolerations`).
+2. *Feld* **im** Container: Der Pfad beginnt beim Container (`lifecycle.preStop`).
+3. *YAML einmischen* für Schlüssel mit Punkten (Annotation).
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Deployment worker Replicas 2</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#5f6b82' }}>zu Liste spec.template.spec.tolerations hinzufügen &#123;key: dedicated, operator: Equal, value: batch, effect: NoSchedule&#125;</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#5f6b82' }}>YAML einmischen &#123;metadata: &#123;annotations: &#123;app.openshift.io/connects-to: db&#125;&#125;&#125;</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Container worker Image registry.example.com/worker:2.0</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#5f6b82' }}>Feld lifecycle.preStop.exec.command = [sh, -c, sleep 5]</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  annotations:
+    app.openshift.io/connects-to: db
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+        - name: worker
+          image: registry.example.com/worker:2.0
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - sh
+                  - -c
+                  - sleep 5
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: batch
+          effect: NoSchedule
+```
+
+## Eigene Ressource: PodDisruptionBudget {#eigene-ressource}
+
+<span className="kind-tag">Kubernetes</span> Für Ressourcen ohne eigenen Startblock. Hier sorgt ein PDB dafür, dass bei Node-Wartungen immer ein Pod läuft.
+
+**So baust du es:**
+
+1. **Ressourcen → Eigene Ressource**: kind `PodDisruptionBudget`, apiVersion `policy/v1`.
+2. Inhalt mit *Feld*-Blöcken.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Eigene Ressource web-pdb kind PodDisruptionBudget apiVersion policy/v1</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#5f6b82' }}>Feld spec.minAvailable = 1</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#5f6b82' }}>Feld spec.selector.matchLabels = &#123;app: web&#125;</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: web-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: web
+```
+
+## Autoscaling nach CPU und RAM {#k8s-hpa}
+
+<span className="kind-tag">Kubernetes</span> Zwischen 2 und 10 Pods; das Herunterskalieren beginnt erst nach 5 Minuten ohne Last.
+
+**So baust du es:**
+
+1. **Ressourcen → Autoscaler** für Deployment `web`, min `2`, max `10`.
+2. Zwei **Skalierung → Ziel**-Blöcke und ein **herunterskalieren erst nach**.
+
+**Blöcke:**
+
+<div className="blk-tree">
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Autoscaler web für Deployment web min 2 max 10</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#24927a' }}>Ziel CPU Auslastung 70 %</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#24927a' }}>Ziel RAM Auslastung 80 %</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#24927a' }}>herunterskalieren erst nach 300 Sekunden Ruhe</span></div>
+</div>
+
+**Ergebnis:**
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: web
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+```
+
+:::tip
+Auslastung bezieht sich auf die **requests** der Container. Ohne `resources.requests` kann der HPA nicht rechnen.
+:::

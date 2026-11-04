@@ -1,0 +1,40 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[Job hello Versuche 0]
+  [Container hello Image busybox:1.36]
+    [Command /bin/sh -c "echo Hallo Welt && sleep 5"]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: hello
+    spec:
+      containers:
+        - name: hello
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - echo Hallo Welt && sleep 5
+      restartPolicy: Never
+```
+
+</TabItem>
+</Tabs>

@@ -1,0 +1,77 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Variablen (aktive Umgebung): `DB_PASSWORD` = `geheim`
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[Docker Compose · Projekt blog]
+  [Service wordpress Image wordpress:6]
+    [Port Host 8080 → Container 80 tcp]
+    [Variable WORDPRESS_DB_HOST = db]
+    [Variable WORDPRESS_DB_USER = wp]
+    [Variable WORDPRESS_DB_PASSWORD = ${DB_PASSWORD}]
+    [Variable WORDPRESS_DB_NAME = wp]
+    [Volume wp-content → /var/www/html/wp-content nur lesen ☐]
+    [wartet auf db bis gesund]
+    [Neustart unless-stopped]
+  [Service db Image mariadb:11]
+    [Variable MARIADB_DATABASE = wp]
+    [Variable MARIADB_USER = wp]
+    [Variable MARIADB_PASSWORD = ${DB_PASSWORD}]
+    [Variable MARIADB_RANDOM_ROOT_PASSWORD = 1]
+    [Volume db-data → /var/lib/mysql nur lesen ☐]
+    [Healthcheck healthcheck.sh --connect --innodb_initialized alle 10s Timeout 5s Versuche 5]
+    [Neustart unless-stopped]
+  [Volume wp-content Treiber Standard]
+  [Volume db-data Treiber Standard]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+name: blog
+services:
+  wordpress:
+    image: wordpress:6
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: geheim
+      WORDPRESS_DB_NAME: wp
+    volumes:
+      - wp-content:/var/www/html/wp-content
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  db:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: wp
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: geheim
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - healthcheck.sh --connect --innodb_initialized
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+volumes:
+  wp-content:
+  db-data:
+```
+
+</TabItem>
+</Tabs>

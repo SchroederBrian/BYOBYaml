@@ -1,0 +1,136 @@
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+Variablen (aktive Umgebung): `APP` = `api` · `NS` = `api-prod` · `REPLICAS` = `3` · `HOST` = `api.example.com` · `BRANCH` = `main`
+
+<Tabs>
+<TabItem value="blocks" label="Blöcke">
+
+```text
+[ImageStream ${APP} lokaler Lookup ☑]
+  [im Namespace ${NS}]
+
+[BuildConfig ${APP} → ImageStreamTag ${APP}:latest Ablauf Serial]
+  [im Namespace ${NS}]
+  [Git Quelle https://github.com/example/api.git Branch ${BRANCH} Unterordner ]
+  [S2I-Strategie Builder nodejs:20-ubi9 aus Namespace openshift]
+  [Build starten bei Config-Änderung Webhook-Secret ]
+  [Build starten bei GitHub Push Webhook-Secret api-webhook]
+
+[Deployment ${APP} Replicas ${REPLICAS}]
+  [im Namespace ${NS}]
+  [neues Image aus ${APP}:latest → Container ${APP} aktualisieren]
+  [Container ${APP} Image ${APP}:latest]
+    [Port 8080 Name http TCP]
+
+[Service ${APP} für App ${APP} Typ ClusterIP]
+  [im Namespace ${NS}]
+  [Port 8080 → Ziel http Name http TCP]
+
+[Route ${APP} → Service ${APP} Port http]
+  [im Namespace ${NS}]
+  [Hostname ${HOST}]
+  [HTTPS edge unsicheres HTTP umleiten]
+```
+
+</TabItem>
+<TabItem value="yaml" label="Erzeugtes YAML">
+
+```yaml
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: api
+  namespace: api-prod
+spec:
+  lookupPolicy:
+    local: true
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: api
+  namespace: api-prod
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://github.com/example/api.git
+      ref: main
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: ImageStreamTag
+        name: nodejs:20-ubi9
+        namespace: openshift
+  output:
+    to:
+      kind: ImageStreamTag
+      name: api:latest
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secretReference:
+          name: api-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: api-prod
+  annotations:
+    image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"api:latest"},"fieldPath":"spec.template.spec.containers[?(@.name==\"api\")].image"}]'
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: api
+          image: api:latest
+          ports:
+            - name: http
+              containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: api-prod
+spec:
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: api
+  namespace: api-prod
+spec:
+  host: api.example.com
+  to:
+    kind: Service
+    name: api
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+```
+
+</TabItem>
+</Tabs>

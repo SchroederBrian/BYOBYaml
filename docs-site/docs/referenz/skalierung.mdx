@@ -1,0 +1,86 @@
+---
+title: "Skalierung"
+sidebar_label: "Skalierung"
+sidebar_position: 10
+description: "Metriken und Verhalten des HorizontalPodAutoscalers."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#24927a' }} /> Skalierung
+
+Metriken und Verhalten des HorizontalPodAutoscalers.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Ziel … Auslastung … %](#hpa-metric) | Stapel | unter einen Autoscaler |
+| [herunterskalieren erst nach … Sekunden Ruhe](#hpa-behavior) | Stapel | unter einen Autoscaler |
+
+## Ziel … Auslastung … % {#hpa-metric}
+
+<div className="block-sig" style={{ '--c': '#24927a' }}>Ziel [1] Auslastung [2] %</div>
+
+**Stapelblock** · Typ-ID `hpa_metric` · gehört unter einen Autoscaler
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `RES` | Auswahl | `CPU` | `CPU` → `cpu`, `RAM` → `memory` |
+| 2 | `PCT` | Zahl | `70` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: demo
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+</details>
+
+## herunterskalieren erst nach … Sekunden Ruhe {#hpa-behavior}
+
+<div className="block-sig" style={{ '--c': '#24927a' }}>herunterskalieren erst nach [1] Sekunden Ruhe</div>
+
+**Stapelblock** · Typ-ID `hpa_behavior` · gehört unter einen Autoscaler
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Zahl | `300` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: demo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: demo
+  minReplicas: 1
+  maxReplicas: 3
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+```
+
+</details>

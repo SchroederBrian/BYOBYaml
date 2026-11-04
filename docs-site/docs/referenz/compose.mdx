@@ -1,0 +1,130 @@
+---
+title: "Compose"
+sidebar_label: "Compose"
+sidebar_position: 1
+description: "Grundgerüst einer docker-compose."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#3f7fd8' }} /> Compose
+
+Grundgerüst einer `docker-compose.yml`: der Startblock, Services sowie projektweite Volumes, Netzwerke und Secrets.
+
+| Block | Art | Platz |
+| --- | --- | --- |
+| [Docker Compose · Projekt …](#compose-file) | Start | oberste Ebene |
+| [Service … Image …](#compose-service) | Klammer | unter einen "Docker Compose"-Startblock |
+| [Volume … Treiber …](#compose-volume) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Netzwerk … Treiber … extern …](#compose-network) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Secret … aus Datei …](#compose-secret) | Stapel | unter einen "Docker Compose"-Startblock |
+
+## Docker Compose · Projekt … {#compose-file}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt [1]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `compose_file`
+
+> Startblock für eine docker-compose.yml. Hänge Services, Volumes und Netzwerke darunter.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+{}
+```
+
+</details>
+
+## Service … Image … {#compose-service}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Service [1] Image [2]</div>
+
+**Klammerblock – nimmt weitere Blöcke auf** · Typ-ID `compose_service` · gehört unter einen "Docker Compose"-Startblock
+
+> Ein Container-Service. Lege Service-Blöcke (lila) hinein.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `web` |  |
+| 2 | `IMAGE` | Text | `nginx:latest` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+```
+
+</details>
+
+## Volume … Treiber … {#compose-volume}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Volume [1] Treiber [2]</div>
+
+**Stapelblock** · Typ-ID `compose_volume` · gehört unter einen "Docker Compose"-Startblock
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `data` |  |
+| 2 | `DRIVER` | Auswahl | `Standard` | `Standard`, `local` |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+volumes:
+  data:
+```
+
+</details>
+
+## Netzwerk … Treiber … extern … {#compose-network}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Netzwerk [1] Treiber [2] extern [3]</div>
+
+**Stapelblock** · Typ-ID `compose_network` · gehört unter einen "Docker Compose"-Startblock
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `backend` |  |
+| 2 | `DRIVER` | Auswahl | `Standard` | `Standard`, `bridge`, `overlay`, `host`, `macvlan`, `none` |
+| 3 | `EXTERNAL` | Häkchen | aus |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+networks:
+  backend:
+```
+
+</details>
+
+## Secret … aus Datei … {#compose-secret}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Secret [1] aus Datei [2]</div>
+
+**Stapelblock** · Typ-ID `compose_secret` · gehört unter einen "Docker Compose"-Startblock
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `db_password` |  |
+| 2 | `FILE` | Text | `./secrets/db_password.txt` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+```
+
+</details>
