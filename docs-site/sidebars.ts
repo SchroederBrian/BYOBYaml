@@ -23,6 +23,7 @@ const sidebars: SidebarsConfig = {
         'handbuch/variablen-umgebungen',
         'handbuch/importieren',
         'handbuch/vorlagen',
+        'handbuch/marktplatz',
         'handbuch/projekte-export',
         'handbuch/beispiele',
       ],

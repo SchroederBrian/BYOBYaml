@@ -11,8 +11,8 @@ docs-site/node_modules/
 !.env.example
 /BYOBYaml/
 .impeccable/hook.cache.json
-scripts/samples-private/
 deploy/
-deploy-parts/
 byobyaml-deploy.zip
-/BYOBYaml/
+deploy-parts/
+scripts/samples-private/
+.playwright-mcp/

@@ -223,6 +223,7 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
     ['Extras', 'Feld, Liste und YAML-Einmischen setzen jedes beliebige Feld, auch wenn es keinen eigenen Block dafür gibt.'],
     ['Import', 'YAML-Dateien, eingefügtes YAML oder die Ausgabe von oc/kubectl get -o yaml. Cluster-Felder (status, uid, managedFields …) werden entfernt.'],
     ['Vorlagen', 'Unter Vorlagen gibt es fertige Block-Kombinationen. Eigene speicherst du per Rechtsklick → „Ab hier als Vorlage speichern…“.'],
+    ['Marktplatz', 'Titelleiste → Marktplatz: Block-Kombinationen, Dateien und Projekte anderer kostenlos ansehen und übernehmen. Eigene teilen: Rechtsklick auf einen Block → „Ab hier im Marktplatz teilen…“ oder Datei → Im Marktplatz veröffentlichen.'],
     ['Speichern', 'Automatisch in SQLite unter %APPDATA%\\BYOBYaml. .byob-Dateien dienen zum Austausch und als Backup.'],
     ['Tastatur', 'Strg+S speichert sofort · Strg+Z / Strg+Y für Rückgängig / Wiederholen · Entf löscht den gewählten Block · Strg+C / Strg+V für Blöcke.'],
   ];

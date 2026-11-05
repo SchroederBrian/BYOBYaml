@@ -44,6 +44,7 @@ export function ago(t: number): string {
   if (d < 30) return `vor ${d} ${d === 1 ? 'Tag' : 'Tagen'}`;
   return new Date(t).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+export const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 const num = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1).replace('.', ',')}k` : String(n));
 
 export default function MarketDialog({ onClose, initialId, activeKind, onUse, onPublish, flash, reloadKey }: Props) {
@@ -64,6 +65,11 @@ export default function MarketDialog({ onClose, initialId, activeKind, onUse, on
   const [openId, setOpenId] = useState<string | null>(initialId ?? null);
   const [login, setLogin] = useState(false);
   const reqNo = useRef(0);
+
+  // deep link / "Im Marktplatz ansehen" while the marketplace is already open
+  useEffect(() => {
+    if (initialId) setOpenId(initialId);
+  }, [initialId]);
 
   // debounce search typing
   useEffect(() => {
@@ -186,6 +192,7 @@ export default function MarketDialog({ onClose, initialId, activeKind, onUse, on
               onDeleted={(id) => (dropItem(id), setOpenId(null))}
               needLogin={() => setLogin(true)}
               flash={flash}
+              reloadKey={reloadKey}
             />
           ) : (
             <>
@@ -444,8 +451,10 @@ function ItemDetail({
   onDeleted,
   needLogin,
   flash,
+  reloadKey,
 }: {
   id: string;
+  reloadKey: number;
   activeKind?: 'compose' | 'k8s';
   onBack: () => void;
   onUse: (item: MarketItemFull, how: UseAction) => Promise<string | void>;
@@ -476,7 +485,7 @@ function ItemDetail({
       .get(id)
       .then(setItem)
       .catch((e) => setError(e instanceof MarketError && e.status === 404 ? 'Dieser Eintrag existiert nicht mehr.' : e.message));
-  }, [id, user?.id]);
+  }, [id, user?.id, reloadKey]);
 
   useEffect(() => {
     if (item && user?.admin) market.reports(item.id).then(setReports).catch(() => setReports(null));
@@ -606,7 +615,7 @@ function ItemDetail({
             </span>
             <TargetPill target={item.target} />
             <span className="muted mk-meta-small">
-              v{item.version} · {item.blockCount} Blöcke{item.fileCount > 1 ? ` · ${item.fileCount} Dateien` : ''} · {Math.max(1, Math.round(item.bytes / 1000))} KB
+              v{item.version} · {plural(item.blockCount, 'Block', 'Blöcke')}{item.fileCount > 1 ? ` · ${item.fileCount} Dateien` : ''} · {Math.max(1, Math.round(item.bytes / 1000))} KB
             </span>
           </div>
           <h2 className="mk-detail-title">{item.title}</h2>
@@ -714,12 +723,12 @@ function ItemDetail({
               ))}
             </select>
           )}
-          {file && <span className="muted mono">{file.name}</span>}
+          {file && !(isProject(d) && d.files.length > 1) && <span className="muted mono">{file.name}</span>}
           <div className="spacer" />
           <span className="muted mk-preview-hint">{tab === 'blocks' ? 'Nur Vorschau · Ziehen zum Verschieben, Mausrad + Strg zum Zoomen' : isProject(d) && d.variables.length ? `Variablen: ${d.envs[0]}` : ''}</span>
         </div>
         {tab === 'blocks' ? (
-          previewState ? <BlockPreview state={previewState} height={380} /> : null
+          previewState ? <BlockPreview state={previewState} height={isSnippet(d) ? Math.min(380, 120 + item.blockCount * 26) : 420} /> : null
         ) : yaml === null ? (
           <div className="mk-preview-note">Diese Kombination beginnt nicht mit einem Startblock. YAML entsteht, sobald du sie in einer Datei unter den passenden Block legst.</div>
         ) : (

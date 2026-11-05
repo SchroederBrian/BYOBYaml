@@ -1061,4 +1061,18 @@
   .mk-sources {
     grid-template-columns: 1fr;
   }
+  .mk-overlay .kind-pill,
+  .modal .kind-pill {
+    display: inline-flex;
+  }
+  .mk-tags {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin-right: -12px;
+    padding-right: 12px;
+  }
+  .mk-tag {
+    flex: none;
+  }
 }

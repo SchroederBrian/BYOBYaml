@@ -12,7 +12,7 @@ import { importYaml } from './importer';
 import { emptyFile, FileKind, newProject, normalizeProject, parseByob, Project, ProjectFile, ProjectMeta, Snippet, toByob, uid, uniqueName } from './project';
 import MarketDialog, { UseAction } from './market/MarketDialog';
 import PublishDialog, { PublishSources } from './market/PublishDialog';
-import { isFile, isProject, isSnippet } from './market/preview';
+import { isFile, isProject, isSnippet, snippetWhere } from './market/preview';
 import type { MarketItemFull } from './market/shared';
 import { db, exportAll, isDesktop, openTexts, saveText } from './storage';
 
@@ -407,7 +407,8 @@ export default function App() {
       editor.current?.insert(d.block);
       setMarketOpen(null);
       setMobileView('canvas');
-      return `„${item.title}“ eingefügt`;
+      const where = snippetWhere(d);
+      return where && !where.startsWith('Startblock') ? `„${item.title}“ eingefügt – ${where}` : `„${item.title}“ eingefügt`;
     }
     if (how === 'snippet' && isSnippet(d)) {
       await db.saveSnippet({ id: uid(), name: item.title, category: 'market', block: d.block });

@@ -4,7 +4,7 @@ import { Icon } from '../components/Icons';
 import { Modal } from '../components/Dialogs';
 import { market, MARKET_HOST, SAME_ORIGIN } from './api';
 import { checkData, findSecrets, ItemData, ItemKind, LIMITS, MarketItem, MarketItemFull, parseTags, ProjectData } from './shared';
-import { LoginDialog, TargetPill } from './MarketDialog';
+import { LoginDialog, plural, TargetPill } from './MarketDialog';
 import { useMe } from './useMe';
 import type { Snippet } from '../project';
 
@@ -84,7 +84,8 @@ export default function PublishDialog({ sources, edit, onClose, onDone, flash }:
       return { error: e.message as string };
     }
   }, [payload]);
-  const secrets = useMemo(() => (payload ? findSecrets(payload.data) : []), [payload]);
+  // unchanged content was already confirmed when it was published
+  const secrets = useMemo(() => (payload && source !== 'keep' ? findSecrets(payload.data) : []), [payload, source]);
   useEffect(() => setSecretOk(false), [secrets.length, source]);
 
   const tags = parseTags(tagText);
@@ -180,7 +181,7 @@ export default function PublishDialog({ sources, edit, onClose, onDone, flash }:
               <div className="mk-step-title">{edit ? 'Inhalt' : 'Was möchtest du teilen?'}</div>
               <div className="mk-sources">
                 {edit && <SourceCard id="keep" icon="check" title="Inhalt beibehalten" sub={`Nur Titel, Beschreibung und Tags ändern (v${edit.version})`} />}
-                {sources.preset && <SourceCard id="preset" icon="layers" title="Ausgewählte Block-Kombination" sub={`${blocksIn(sources.preset.block)} Blöcke ab dem angeklickten Block`} />}
+                {sources.preset && <SourceCard id="preset" icon="layers" title="Ausgewählte Block-Kombination" sub={`${plural(blocksIn(sources.preset.block), 'Block', 'Blöcke')} ab dem angeklickten Block`} />}
                 {sources.file && (!edit || edit.kind === 'file') && <SourceCard id="file" icon="file" title={edit ? 'Durch aktuelle Datei ersetzen' : 'Aktuelle Datei'} sub={`${sources.file.name} · ${sources.file.kind === 'compose' ? 'Docker Compose' : 'Kubernetes'}`} />}
                 {sources.project && (!edit || edit.kind === 'project') && <SourceCard id="project" icon="folder" title={edit ? 'Durch aktuelles Projekt ersetzen' : 'Ganzes Projekt'} sub={`${sources.project.title} · ${sources.project.files.length} Dateien`} />}
                 {(!edit || edit.kind === 'snippet') && <SourceCard id="snippet" icon="star" title={edit ? 'Durch eine meiner Vorlagen ersetzen' : 'Eine meiner Vorlagen'} sub={sources.snippets.length ? `${sources.snippets.length} eigene Vorlagen` : 'Noch keine eigenen Vorlagen'} disabled={!sources.snippets.length} />}
@@ -205,7 +206,7 @@ export default function PublishDialog({ sources, edit, onClose, onDone, flash }:
               <div className={`mk-check-result ${check.ok ? 'ok' : 'err'}`}>
                 {check.ok ? (
                   <>
-                    <Icon name="check" size={13} /> {check.ok.blockCount} Blöcke{check.ok.fileCount > 1 ? ` in ${check.ok.fileCount} Dateien` : ''} · <TargetPill target={check.ok.target} /> · {Math.max(1, Math.round(check.ok.bytes / 1000))} KB
+                    <Icon name="check" size={13} /> {plural(check.ok.blockCount, 'Block', 'Blöcke')}{check.ok.fileCount > 1 ? ` in ${check.ok.fileCount} Dateien` : ''} · <TargetPill target={check.ok.target} /> · {Math.max(1, Math.round(check.ok.bytes / 1000))} KB
                   </>
                 ) : (
                   <>

@@ -136,14 +136,18 @@ export function checkPublish(input: any): Checked & { title: string; description
   if (!input || typeof input !== 'object') throw new Error('Ungültige Anfrage.');
   const kind = input.kind as ItemKind;
   if (!['snippet', 'file', 'project'].includes(kind)) throw new Error('Unbekannte Art.');
+  return { ...checkData(kind, input.data), ...checkMeta(input), kind };
+}
+
+/** title, description and tags */
+export function checkMeta(input: any): { title: string; description: string; tags: string[] } {
   const title = String(input.title ?? '').trim().replace(/\s+/g, ' ');
   if (title.length < LIMITS.title[0]) throw new Error(`Der Titel braucht mindestens ${LIMITS.title[0]} Zeichen.`);
   if (title.length > LIMITS.title[1]) throw new Error(`Der Titel darf höchstens ${LIMITS.title[1]} Zeichen haben.`);
   const description = String(input.description ?? '').trim();
   if (description.length > LIMITS.description) throw new Error(`Die Beschreibung darf höchstens ${LIMITS.description} Zeichen haben.`);
   const tags = parseTags(Array.isArray(input.tags) ? input.tags : []);
-  const c = checkData(kind, input.data);
-  return { ...c, kind, title, description, tags };
+  return { title, description, tags };
 }
 
 export function checkData(kind: ItemKind, data: any): Checked {

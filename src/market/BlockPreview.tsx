@@ -26,15 +26,15 @@ export default function BlockPreview({ state, height = 320 }: { state: any; heig
     } finally {
       Blockly.Events.enable();
     }
+    // readable scale, content starts top-left (big files: drag / scroll to explore)
     const fit = () => {
       Blockly.svgResize(ws);
-      const m = ws.getBlocksBoundingBox();
       const box = host.current?.getBoundingClientRect();
-      // small content: keep a readable scale instead of blowing it up
-      if (box && m.right - m.left < box.width * 0.9 && m.bottom - m.top < box.height * 0.9) {
-        ws.setScale(0.8);
-        ws.scroll(20 - m.left * 0.8, 20 - m.top * 0.8);
-      } else ws.zoomToFit();
+      const first = ws.getTopBlocks(true)[0];
+      if (!box || !first) return;
+      ws.setScale(box.width < 500 ? 0.65 : 0.8);
+      const r = first.getSvgRoot().getBoundingClientRect();
+      ws.scroll(ws.scrollX + box.left + 24 - r.left, ws.scrollY + box.top + 20 - r.top);
     };
     requestAnimationFrame(fit);
     const ro = new ResizeObserver(() => Blockly.svgResize(ws));
