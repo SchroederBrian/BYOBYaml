@@ -45,6 +45,7 @@ function blockJson(spec: BlockSpec): any {
 // ---------- hooks the React app plugs into ----------
 export const editorHooks: {
   onSaveSnippet?: (state: any) => void;
+  onShareSnippet?: (state: any) => void;
   userSnippets: () => any[];
 } = { userSnippets: () => [] };
 
@@ -66,6 +67,18 @@ export function registerBlocks() {
         if (!scope.block) return;
         const state = Blockly.serialization.blocks.save(scope.block, { addCoordinates: false, addNextBlocks: true, saveIds: false });
         editorHooks.onSaveSnippet?.(state);
+      },
+    });
+    Blockly.ContextMenuRegistry.registry.register({
+      id: 'byob_share_snippet',
+      scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK,
+      weight: -9,
+      displayText: 'Ab hier im Marktplatz teilen…',
+      preconditionFn: (scope) => (scope.block && !scope.block.isInFlyout && editorHooks.onShareSnippet ? 'enabled' : 'hidden'),
+      callback: (scope) => {
+        if (!scope.block) return;
+        const state = Blockly.serialization.blocks.save(scope.block, { addCoordinates: false, addNextBlocks: true, saveIds: false });
+        editorHooks.onShareSnippet?.(state);
       },
     });
   }

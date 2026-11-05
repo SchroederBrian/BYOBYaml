@@ -138,7 +138,19 @@ export function ProblemsPanel({ warnings, onSelect }: { warnings: GenWarning[]; 
 }
 
 // ---------------- Snippets ----------------
-export function SnippetsPanel({ snippets, onRename, onDelete }: { snippets: Snippet[]; onRename: (s: Snippet) => void; onDelete: (s: Snippet) => void }) {
+export function SnippetsPanel({
+  snippets,
+  onRename,
+  onDelete,
+  onShare,
+  onMarket,
+}: {
+  snippets: Snippet[];
+  onRename: (s: Snippet) => void;
+  onDelete: (s: Snippet) => void;
+  onShare?: (s: Snippet) => void;
+  onMarket?: () => void;
+}) {
   return (
     <div className="panel-scroll">
       <div className="panel-intro">
@@ -153,6 +165,11 @@ export function SnippetsPanel({ snippets, onRename, onDelete }: { snippets: Snip
               <Icon name="layers" size={14} />
               <span className="snippet-name">{s.name}</span>
               <span className="snippet-meta">{countBlocks(s.block)} Blöcke</span>
+              {onShare && (
+                <button className="icon-btn" title="Im Marktplatz teilen" onClick={() => onShare(s)}>
+                  <Icon name="share" size={14} />
+                </button>
+              )}
               <button className="icon-btn" title="Umbenennen" onClick={() => onRename(s)}>
                 <Icon name="edit" size={14} />
               </button>
@@ -162,6 +179,15 @@ export function SnippetsPanel({ snippets, onRename, onDelete }: { snippets: Snip
             </li>
           ))}
         </ul>
+      )}
+      {onMarket && (
+        <button className="mk-panel-cta" onClick={onMarket}>
+          <Icon name="store" size={16} />
+          <span>
+            <b>Mehr Vorlagen im Marktplatz</b>
+            <small>Kostenlose Block-Kombinationen, Dateien und Projekte von anderen – oder teile deine eigenen.</small>
+          </span>
+        </button>
       )}
     </div>
   );

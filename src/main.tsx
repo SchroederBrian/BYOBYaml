@@ -6,5 +6,6 @@ import '@fontsource/ibm-plex-mono/400.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import App from './App';
 import './styles/app.css';
+import './styles/market.css';
 
 createRoot(document.getElementById('root')!).render(<App />);

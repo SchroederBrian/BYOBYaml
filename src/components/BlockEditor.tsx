@@ -12,6 +12,8 @@ export interface BlockEditorHandle {
   cleanUp(): void;
   zoomToFit(): void;
   regenerate(): void;
+  /** add a block chain (e.g. from the marketplace) near the visible top-left and select it */
+  insert(blockState: any): void;
 }
 
 interface Props {
@@ -19,9 +21,10 @@ interface Props {
   userSnippets: Snippet[];
   onChange: (res: GenResult) => void;
   onSaveSnippet: (state: any) => void;
+  onShareSnippet?: (state: any) => void;
 }
 
-const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ vars, userSnippets, onChange, onSaveSnippet }, ref) {
+const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ vars, userSnippets, onChange, onSaveSnippet, onShareSnippet }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const ws = useRef<Blockly.WorkspaceSvg | null>(null);
   const loading = useRef(false);
@@ -33,6 +36,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   const snippetsRef = useRef(userSnippets);
   snippetsRef.current = userSnippets;
   editorHooks.onSaveSnippet = onSaveSnippet;
+  editorHooks.onShareSnippet = onShareSnippet;
   editorHooks.userSnippets = () => snippetsRef.current;
 
   // never report (and thereby save) a workspace that has not been loaded with a file yet
@@ -135,6 +139,15 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       ws.current?.zoomToFit();
     },
     regenerate: emit,
+    insert(blockState) {
+      const w = ws.current;
+      if (!w) return;
+      const m = w.getMetricsManager().getViewMetrics(true);
+      const { x: _x, y: _y, ...rest } = blockState ?? {};
+      const block = Blockly.serialization.blocks.append({ ...rest, x: m.left + 60, y: m.top + 40 }, w) as Blockly.BlockSvg;
+      Blockly.common.setSelected(block);
+      w.scrollBoundsIntoView?.(block.getBoundingRectangle());
+    },
   }));
 
   return <div className="block-host" ref={host} />;

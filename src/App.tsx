@@ -10,6 +10,10 @@ import { registerBlocks } from './blocks/register';
 import { composeDemo, openshiftDemo } from './examples';
 import { importYaml } from './importer';
 import { emptyFile, FileKind, newProject, normalizeProject, parseByob, Project, ProjectFile, ProjectMeta, Snippet, toByob, uid, uniqueName } from './project';
+import MarketDialog, { UseAction } from './market/MarketDialog';
+import PublishDialog, { PublishSources } from './market/PublishDialog';
+import { isFile, isProject, isSnippet } from './market/preview';
+import type { MarketItemFull } from './market/shared';
 import { db, exportAll, isDesktop, openTexts, saveText } from './storage';
 
 type Tab = 'yaml' | 'vars' | 'problems' | 'snippets';
@@ -53,6 +57,8 @@ export default function App() {
   const [dialog, setDialog] = useState<Dialog>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const snippetsRef = useRef(snippets);
+  snippetsRef.current = snippets;
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [saveState, setSaveState] = useState<{ s: 'saved' | 'saving' | 'error'; at?: number }>({ s: 'saved' });
   const [dbFile, setDbFile] = useState('');
@@ -60,6 +66,13 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   // phones: one pane at a time (files / blocks / inspector), switched via the bottom bar
   const [mobileView, setMobileView] = useState<'files' | 'canvas' | 'inspector'>('canvas');
+  // marketplace: overlay + publish dialog (can be open on top of it)
+  const [marketOpen, setMarketOpen] = useState<{ initialId?: string } | null>(() => {
+    const id = new URLSearchParams(location.search).get('market');
+    return id ? { initialId: id } : null;
+  });
+  const [publish, setPublish] = useState<{ sources: PublishSources; edit?: MarketItemFull } | null>(null);
+  const [marketReload, setMarketReload] = useState(0);
 
   const editor = useRef<BlockEditorHandle>(null);
   const projectRef = useRef(project);
@@ -360,6 +373,91 @@ export default function App() {
     setSnippets(await db.listSnippets());
   };
 
+  // ---------- marketplace ----------
+  const currentSources = (preset?: { block: any }): PublishSources => {
+    const p = projectRef.current;
+    const f = p?.files.find((x) => x.id === activeRef.current) ?? p?.files[0];
+    const liveState = editor.current?.save();
+    return {
+      preset,
+      file: f ? { name: f.name, kind: f.kind, state: liveState ?? f.state } : undefined,
+      project: p
+        ? {
+            title: p.title,
+            files: p.files.map((x) => ({ name: x.name, kind: x.kind, state: x.id === f?.id && liveState ? liveState : x.state })),
+            variables: p.variables,
+            envs: p.envs,
+          }
+        : undefined,
+      snippets: snippetsRef.current,
+    };
+  };
+  const openPublish = (edit?: MarketItemFull, preset?: { block: any }) => {
+    setMenu(null);
+    setPublish({ sources: currentSources(preset), edit });
+  };
+  const onShareSnippet = useCallback((state: any) => setPublish({ sources: currentSources({ block: state }) }), []); // eslint-disable-line react-hooks/exhaustive-deps
+  const shareMySnippet = (s: Snippet) => setPublish({ sources: currentSources({ block: s.block }) });
+
+  /** use downloaded marketplace content; returns a short confirmation */
+  const useMarketItem = async (item: MarketItemFull, how: UseAction): Promise<string> => {
+    const d = item.data;
+    const p = projectRef.current;
+    if (how === 'insert' && isSnippet(d)) {
+      editor.current?.insert(d.block);
+      setMarketOpen(null);
+      setMobileView('canvas');
+      return `„${item.title}“ eingefügt`;
+    }
+    if (how === 'snippet' && isSnippet(d)) {
+      await db.saveSnippet({ id: uid(), name: item.title, category: 'market', block: d.block });
+      setSnippets(await db.listSnippets());
+      return `In „Meine Vorlagen“: ${item.title}`;
+    }
+    if (how === 'file' && isFile(d) && p) {
+      const f: ProjectFile = { id: uid(), name: uniqueName(d.name, p.files.map((x) => x.name)), kind: d.kind, state: d.state, needsLayout: true };
+      patch({ files: [...p.files, f] });
+      setActiveId(f.id);
+      setMarketOpen(null);
+      setMobileView('canvas');
+      return `${f.name} zum Projekt hinzugefügt`;
+    }
+    if (how === 'project' && isProject(d)) {
+      const np = normalizeProject({
+        format: 'byobyaml',
+        version: 2,
+        id: uid(),
+        title: d.title || item.title,
+        createdAt: Date.now(),
+        files: d.files.map((f) => ({ id: uid(), name: f.name, kind: f.kind, state: f.state, needsLayout: true })),
+        variables: d.variables,
+        envs: d.envs,
+        activeEnv: d.envs[0] ?? 'dev',
+      });
+      await db.saveProject(np);
+      openProject(np);
+      refreshProjects();
+      setMarketOpen(null);
+      setMobileView('canvas');
+      return `Projekt „${np.title}“ geöffnet`;
+    }
+    // download as a file
+    const base = slug(item.title);
+    let r: string | null;
+    if (isFile(d)) r = await saveText(d.name || `${base}.yaml`, yamlForFile({ id: 'x', name: d.name, kind: d.kind, state: d.state }, {}), ['yaml', 'yml']);
+    else if (isProject(d)) {
+      const np = normalizeProject({ format: 'byobyaml', version: 2, id: uid(), title: d.title || item.title, files: d.files.map((f) => ({ id: uid(), ...f })), variables: d.variables, envs: d.envs, activeEnv: d.envs[0] ?? 'dev' });
+      r = await saveText(`${base}.byob`, toByob([np]), ['byob']);
+    } else r = await saveText(`${base}.byob`, toByob([], [{ id: uid(), name: item.title, category: 'market', block: (d as any).block }]), ['byob']);
+    if (!r) throw new Error('Abgebrochen');
+    return `Gespeichert: ${r}`;
+  };
+
+  // drop ?market=… from the address bar once handled
+  useEffect(() => {
+    if (new URLSearchParams(location.search).has('market')) history.replaceState(null, '', location.pathname);
+  }, []);
+
   // ---------- keyboard + menus ----------
   useEffect(() => {
     const close = (e: MouseEvent) => {
@@ -427,6 +525,13 @@ export default function App() {
                   <Icon name="helm" /> Neue Kubernetes-Datei
                 </button>
                 <div className="sep" />
+                <button onClick={() => (setMenu(null), setMarketOpen({}))}>
+                  <Icon name="store" /> Marktplatz öffnen
+                </button>
+                <button onClick={() => openPublish()}>
+                  <Icon name="share" /> Im Marktplatz veröffentlichen…
+                </button>
+                <div className="sep" />
                 <button onClick={() => (setMenu(null), setDialog({ kind: 'help' }))}>
                   <Icon name="help" /> Kurzreferenz
                 </button>
@@ -471,6 +576,9 @@ export default function App() {
               </div>
             )}
           </div>
+          <button className="menu-btn market-btn" onClick={() => setMarketOpen({})} title="Öffentlicher Marktplatz: Blöcke, Dateien und Projekte teilen und laden">
+            <Icon name="store" size={14} /> Marktplatz
+          </button>
         </nav>
 
         <div className="title-center">
@@ -573,7 +681,7 @@ export default function App() {
             </div>
           </div>
           <div className="canvas-body">
-            <BlockEditor ref={editor} vars={vars} userSnippets={snippets} onChange={onChange} onSaveSnippet={onSaveSnippet} />
+            <BlockEditor ref={editor} vars={vars} userSnippets={snippets} onChange={onChange} onSaveSnippet={onSaveSnippet} onShareSnippet={onShareSnippet} />
           </div>
         </main>
 
@@ -623,7 +731,7 @@ export default function App() {
           )}
           {tab === 'vars' && project && <VariablesPanel project={project} onChange={patch} flash={flash} />}
           {tab === 'problems' && <ProblemsPanel warnings={result.warnings} onSelect={(id) => editor.current?.select(id)} />}
-          {tab === 'snippets' && <SnippetsPanel snippets={snippets} onRename={renameSnippet} onDelete={deleteSnippet} />}
+          {tab === 'snippets' && <SnippetsPanel snippets={snippets} onRename={renameSnippet} onDelete={deleteSnippet} onShare={shareMySnippet} onMarket={() => setMarketOpen({})} />}
         </aside>
       </div>
 
@@ -641,6 +749,10 @@ export default function App() {
           <Icon name="code" size={18} />
           <span>YAML</span>
           {result.warnings.length > 0 && <span className="badge warn">{result.warnings.length}</span>}
+        </button>
+        <button onClick={() => setMarketOpen({})}>
+          <Icon name="store" size={18} />
+          <span>Markt</span>
         </button>
       </nav>
 
@@ -670,6 +782,31 @@ export default function App() {
             <span>.yaml / .yml → Blöcke · .byob → Projekte & Vorlagen</span>
           </div>
         </div>
+      )}
+
+      {marketOpen && (
+        <MarketDialog
+          initialId={marketOpen.initialId}
+          activeKind={active?.kind}
+          onClose={() => setMarketOpen(null)}
+          onUse={useMarketItem}
+          onPublish={(edit) => openPublish(edit)}
+          flash={flash}
+          reloadKey={marketReload}
+        />
+      )}
+      {publish && (
+        <PublishDialog
+          sources={publish.sources}
+          edit={publish.edit}
+          flash={flash}
+          onClose={() => setPublish(null)}
+          onDone={(item, view) => {
+            setPublish(null);
+            setMarketReload((n) => n + 1);
+            if (view) setMarketOpen({ initialId: item.id });
+          }}
+        />
       )}
 
       {toast && <div className="toast">{toast}</div>}
