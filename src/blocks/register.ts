@@ -4,6 +4,10 @@ import { registerFieldMultilineInput } from '@blockly/field-multilineinput';
 import { ALL_BLOCKS } from './defs';
 import { ArgDef, BlockSpec, CATEGORIES, CatId } from './types';
 import { BUILTIN_SNIPPETS, snippetState } from '../snippets';
+import { searchBlocks, SEARCH_PAGE_SIZE } from './search';
+import type { FileKind, Snippet } from '../project';
+import { customBlockCatalogue, registerCustomBlockType } from '../custom-blocks/runtime';
+import { CUSTOM_BLOCK } from '../custom-blocks/model';
 
 function argJson(a: ArgDef): any {
   switch (a.kind) {
@@ -46,6 +50,7 @@ function blockJson(spec: BlockSpec): any {
 export const editorHooks: {
   onSaveSnippet?: (state: any) => void;
   onShareSnippet?: (state: any) => void;
+  onDesignCustomBlocks?: (definition?: import('../custom-blocks/model').CustomBlockDefinition) => void;
   userSnippets: () => any[];
 } = { userSnippets: () => [] };
 
@@ -55,7 +60,14 @@ export function registerBlocks() {
   registered = true;
   registerFieldMultilineInput();
   Blockly.common.defineBlocksWithJsonArray(ALL_BLOCKS.map(blockJson));
+  registerCustomBlockType(blockJson);
   if (typeof document !== 'undefined') {
+    Blockly.ContextMenuRegistry.registry.register({
+      id: 'byob_edit_custom', scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK, weight: -11,
+      displayText: 'Blocktyp im Designer öffnen…',
+      preconditionFn: (scope) => scope.block?.type === CUSTOM_BLOCK && !scope.block.isInFlyout && editorHooks.onDesignCustomBlocks ? 'enabled' : 'hidden',
+      callback: (scope) => editorHooks.onDesignCustomBlocks?.((scope.block as any)?.byobDefinition),
+    });
     Blockly.registry.register(Blockly.registry.Type.TOOLBOX_ITEM, Blockly.ToolboxCategory.registrationName, DotCategory, true);
     Blockly.registry.register(Blockly.registry.Type.FLYOUTS_VERTICAL_TOOLBOX, FIXED_FLYOUT, FixedScaleFlyout, true);
     Blockly.ContextMenuRegistry.registry.register({
@@ -153,6 +165,9 @@ export function buildTheme() {
 
 // ---------- toolbox ----------
 const CAT_INFO: Record<CatId, string> = {
+  dockerImage: 'Dockerfile-Start, Basis-Image und Build-Phasen',
+  dockerBuild: 'Dateien kopieren und Build-Befehle ausführen',
+  dockerRuntime: 'Umgebung und Startverhalten des fertigen Images',
   compose: 'Docker Compose: Datei, Services, Volumes, Netze',
   service: 'Service-Optionen (in einen Service legen)',
   resources: 'Startblöcke: eine Ressource pro Block',
@@ -166,8 +181,12 @@ const CAT_INFO: Record<CatId, string> = {
   extras: 'Beliebige Felder setzen – für alles ohne eigenen Block',
 };
 
-export function buildToolbox(mode: 'compose' | 'k8s') {
-  const cats: CatId[] = mode === 'compose' ? ['compose', 'service', 'extras'] : ['resources', 'metadata', 'pod', 'container', 'network', 'data', 'build', 'scaling', 'extras'];
+export function buildToolbox(mode: FileKind, query = '', snippets: Snippet[] = [], limit = SEARCH_PAGE_SIZE) {
+  if (query.trim()) return {
+    kind: 'categoryToolbox',
+    contents: [{ kind: 'category', name: 'Suchergebnisse', categorystyle: 'extras', contents: searchBlocks(query, snippets, limit).contents }],
+  };
+  const cats: CatId[] = mode === 'dockerfile' ? ['dockerImage','dockerBuild','dockerRuntime'] : mode === 'compose' ? ['compose', 'service', 'extras'] : ['resources', 'metadata', 'pod', 'container', 'network', 'data', 'build', 'scaling', 'extras'];
   const snippetGroups = [...new Set(BUILTIN_SNIPPETS.filter((s) => s.kind === mode).map((s) => s.group))];
   return {
     kind: 'categoryToolbox',
@@ -178,6 +197,7 @@ export function buildToolbox(mode: 'compose' | 'k8s') {
         categorystyle: c.id,
         contents: [{ kind: 'label', text: CAT_INFO[c.id] }, ...ALL_BLOCKS.filter((b) => b.cat === c.id).map((b) => ({ kind: 'block', type: b.type }))],
       })),
+      ...(customBlockCatalogue().some((block) => block.kind === mode) ? [{ kind: 'category', name: 'Eigene Blöcke', categorystyle: 'mine', contents: customBlockCatalogue().filter((block) => block.kind === mode).flatMap((definition) => [{ kind: 'label', text: definition.name }, { kind: 'block', type: CUSTOM_BLOCK, extraState: { definition } }]) }] : []),
       { kind: 'sep', gap: 14 },
       {
         kind: 'category',

@@ -2,16 +2,17 @@
 // No Blockly / DOM imports here: the server bundles this file.
 import { ALL_BLOCKS, SPEC_BY_TYPE } from '../blocks/defs';
 import { cleanFolder } from '../folders';
+import type { FileKind, Variable } from '../project';
 
 /** what is shared */
 export type ItemKind = 'snippet' | 'file' | 'project';
 /** which editor it belongs to */
-export type ItemTarget = 'compose' | 'k8s' | 'mixed' | 'any';
+export type ItemTarget = 'compose' | 'k8s' | 'dockerfile' | 'mixed' | 'any';
 export type SortKey = 'new' | 'popular' | 'stars' | 'updated';
 
 export const KIND_LABEL: Record<ItemKind, string> = { snippet: 'Block-Kombination', file: 'Datei', project: 'Projekt' };
 export const KIND_PLURAL: Record<ItemKind, string> = { snippet: 'Block-Kombinationen', file: 'Dateien', project: 'Projekte' };
-export const TARGET_LABEL: Record<ItemTarget, string> = { compose: 'Docker Compose', k8s: 'Kubernetes / OpenShift', mixed: 'Compose + Kubernetes', any: 'überall' };
+export const TARGET_LABEL: Record<ItemTarget, string> = { compose: 'Docker Compose', k8s: 'Kubernetes / OpenShift', dockerfile:'Dockerfile', mixed: 'Mehrere Editoren', any: 'überall' };
 
 export const LIMITS = {
   title: [3, 80] as const,
@@ -31,15 +32,18 @@ export interface SnippetData {
 }
 export interface FileData {
   name: string;
-  kind: 'compose' | 'k8s';
+  kind: FileKind;
   state: any;
+  variables?: Variable[];
+  /** Environments for standalone file previews and imports. */
+  envs?: string[];
   /** folder inside a project (explorer), e.g. "base/apps" */
   folder?: string;
 }
 export interface ProjectData {
   title: string;
   files: FileData[];
-  variables: { name: string; values: Record<string, string> }[];
+  variables: Variable[];
   envs: string[];
 }
 export type ItemData = SnippetData | FileData | ProjectData;
@@ -98,12 +102,14 @@ export function blockTypes(j: any, out: string[] = []): string[] {
 export function targetOf(types: string[]): ItemTarget {
   let compose = false;
   let k8s = false;
+  let dockerfile = false;
   for (const t of types) {
     const cat = SPEC_BY_TYPE[t]?.cat;
     if (cat && COMPOSE_CATS.has(cat)) compose = true;
     if (cat && K8S_CATS.has(cat)) k8s = true;
+    if (cat?.startsWith('docker')) dockerfile = true;
   }
-  return compose && k8s ? 'mixed' : compose ? 'compose' : k8s ? 'k8s' : 'any';
+  return [compose,k8s,dockerfile].filter(Boolean).length > 1 ? 'mixed' : dockerfile ? 'dockerfile' : compose ? 'compose' : k8s ? 'k8s' : 'any';
 }
 
 export function normTag(t: string): string {
@@ -161,10 +167,10 @@ export function checkData(kind: ItemKind, data: any): Checked {
   const fileOf = (f: any, i = 0): FileData => {
     if (!f || typeof f !== 'object') throw new Error(`Datei ${i + 1} ist ungültig.`);
     const name = String(f.name ?? '').trim().slice(0, 120) || `datei-${i + 1}.yaml`;
-    if (f.kind !== 'compose' && f.kind !== 'k8s') throw new Error(`Datei "${name}": unbekannter Typ.`);
+    if (!['compose','k8s','dockerfile'].includes(f.kind)) throw new Error(`Datei "${name}": unbekannter Typ.`);
     if (!f.state || typeof f.state !== 'object' || !Array.isArray(workspaceBlocks(f.state))) throw new Error(`Datei "${name}" enthält keine Blöcke.`);
     const folder = cleanFolder(f.folder);
-    return { name, kind: f.kind, state: { blocks: { languageVersion: 0, blocks: workspaceBlocks(f.state) } }, ...(folder ? { folder } : {}) };
+    return { name, kind: f.kind, state: { blocks: { languageVersion: 0, blocks: workspaceBlocks(f.state) } }, ...(folder ? { folder } : {}), ...(Array.isArray(f.variables) ? { variables: variablesOf(f.variables) } : {}), ...(Array.isArray(f.envs) ? { envs: envsOf(f.envs) } : {}) };
   };
   if (kind === 'snippet') {
     if (!data.block || typeof data.block !== 'object' || typeof data.block.type !== 'string') throw new Error('Die Block-Kombination ist leer.');
@@ -179,11 +185,8 @@ export function checkData(kind: ItemKind, data: any): Checked {
     if (!Array.isArray(data.files) || !data.files.length) throw new Error('Das Projekt hat keine Dateien.');
     if (data.files.length > LIMITS.files) throw new Error(`Höchstens ${LIMITS.files} Dateien pro Projekt.`);
     const files = data.files.map(fileOf);
-    const envs = (Array.isArray(data.envs) ? data.envs : ['dev']).map((e: any) => String(e).slice(0, 40)).filter(Boolean).slice(0, 20);
-    const variables = (Array.isArray(data.variables) ? data.variables : []).slice(0, 300).map((v: any) => ({
-      name: String(v?.name ?? '').slice(0, 100),
-      values: Object.fromEntries(Object.entries(v?.values ?? {}).slice(0, 20).map(([k, x]) => [String(k).slice(0, 40), String(x ?? '').slice(0, 4000)])),
-    }));
+    const envs = envsOf(data.envs);
+    const variables = variablesOf(data.variables);
     clean = { title: String(data.title ?? '').slice(0, 120), files, variables, envs: envs.length ? envs : ['dev'] };
     types = files.flatMap((f: FileData) => blockTypes(f.state));
     fileCount = files.length;
@@ -195,6 +198,25 @@ export function checkData(kind: ItemKind, data: any): Checked {
   const bytes = JSON.stringify(clean).length;
   if (bytes > LIMITS.bytes) throw new Error(`Zu groß: höchstens ${Math.round(LIMITS.bytes / 1000)} KB.`);
   return { target: targetOf(types), blockCount: types.length, fileCount, bytes, data: clean };
+}
+
+function envsOf(envs: any): string[] {
+  const names = (Array.isArray(envs) ? envs : ['dev']).map((e: any) => String(e).slice(0, 40)).filter(Boolean).slice(0, 20);
+  return names.length ? names : ['dev'];
+}
+
+function variablesOf(variables: any): Variable[] {
+  return (Array.isArray(variables) ? variables : []).slice(0, 300).map((v: any) => ({
+    name: String(v?.name ?? '').slice(0, 100),
+    values: Object.fromEntries(Object.entries(v?.values ?? {}).slice(0, 20).map(([k, x]) => [String(k).slice(0, 40), String(x ?? '').slice(0, 4000)])),
+  }));
+}
+
+/** Remove values from both scopes before publishing, leaving the source untouched. */
+export function stripVariableValues<T extends FileData | ProjectData>(data: T): T {
+  const variables = (data.variables ?? []).map((v) => ({ ...v, values: Object.fromEntries(Object.keys(v.values).map((env) => [env, ''])) }));
+  const clean = { ...data, variables };
+  return 'files' in data ? { ...clean, files: data.files.map(stripVariableValues) } : clean;
 }
 
 // ------------------------------------------------------------------ secret scan (client side warning)
@@ -227,14 +249,21 @@ export function findSecrets(data: ItemData): SecretHint[] {
     }
     for (const [k, v] of Object.entries(j)) if (k !== 'fields' && v && typeof v === 'object') walk(v, where, isSecretDoc);
   };
+  const scanVariables = (variables: Variable[] | undefined, where: string) => {
+    for (const v of variables ?? []) {
+      if (!SECRET_KEY.test(v.name)) continue;
+      if (Object.values(v.values).some((x) => !PLACEHOLDER.test(String(x).trim()))) out.push({ where, key: v.name });
+    }
+  };
+  const scanFile = (file: FileData) => {
+    walk(file.state, file.name, false);
+    scanVariables(file.variables, file.name);
+  };
   if ('block' in data) walk(data.block, 'Blöcke', false);
   else if ('files' in data) {
-    for (const f of data.files) walk(f.state, f.name, false);
-    for (const v of data.variables) {
-      if (!SECRET_KEY.test(v.name)) continue;
-      if (Object.values(v.values).some((x) => !PLACEHOLDER.test(String(x).trim()))) out.push({ where: 'Variablen', key: v.name });
-    }
-  } else walk((data as FileData).state, (data as FileData).name, false);
+    for (const f of data.files) scanFile(f);
+    scanVariables(data.variables, 'Variablen');
+  } else scanFile(data as FileData);
   // unique
   const seen = new Set<string>();
   return out.filter((h) => {

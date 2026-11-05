@@ -51,17 +51,17 @@ export function PromptDialog({ title, label, initial, confirm, onDone }: { title
   );
 }
 
-export function PasteDialog({ onDone }: { onDone: (r: { name: string; text: string } | null) => void }) {
-  const [name, setName] = useState('import.yaml');
+export function PasteDialog({ onDone, format = 'yaml' }: { onDone: (r: { name: string; text: string } | null) => void; format?: 'yaml' | 'dockerfile' }) {
+  const [name, setName] = useState(format === 'dockerfile' ? 'Dockerfile' : 'import.yaml');
   const [text, setText] = useState('');
   return (
     <Modal
       wide
-      title="YAML einfügen"
+      title={format === 'dockerfile' ? 'Dockerfile einfügen' : 'YAML einfügen'}
       onClose={() => onDone(null)}
       footer={
         <>
-          <span className="foot-hint">Mehrere Dokumente mit --- trennen. Compose und Kubernetes werden erkannt.</span>
+          <span className="foot-hint">{format === 'dockerfile' ? 'Nicht unterstützte Anweisungen werden gemeldet; es wird nichts stillschweigend entfernt.' : 'Mehrere Dokumente mit --- trennen. Compose und Kubernetes werden erkannt.'}</span>
           <button className="btn ghost" onClick={() => onDone(null)}>
             Abbrechen
           </button>
@@ -79,7 +79,8 @@ export function PasteDialog({ onDone }: { onDone: (r: { name: string; text: stri
         className="textarea mono"
         autoFocus
         spellCheck={false}
-        placeholder={'apiVersion: apps/v1\nkind: Deployment\n…\n\noder Ausgabe von: oc get deploy,svc,route -o yaml'}
+        aria-label={format === 'dockerfile' ? 'Dockerfile-Inhalt' : 'YAML-Inhalt'}
+        placeholder={format === 'dockerfile' ? 'FROM alpine:3\nWORKDIR /app\nCOPY . /app/\nCMD ["sh"]' : 'apiVersion: apps/v1\nkind: Deployment\n…\n\noder Ausgabe von: oc get deploy,svc,route -o yaml'}
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
@@ -221,7 +222,7 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
     ['Verschachteln', 'Blöcke rasten unter dem Startblock ein. Container- und Service-Blöcke nehmen weitere Blöcke auf.'],
     ['Auswählen', 'Ziehen auf der leeren Fläche zieht einen Rahmen auf (Shift = dazu). Ausgewählte Stapel gemeinsam ziehen, Entf löscht, Strg+C/V kopiert. Leertaste + Ziehen verschiebt die Ansicht. Umschalten oben: Auswählen / Verschieben.'],
     ['Dateien & Ordner', 'Ordner-Symbol mit Plus legt einen Ordner an, Dateien per Drag & Drop verschieben. Strg/Shift + Klick wählt mehrere Dateien – dann verschieben, duplizieren, exportieren oder löschen.'],
-    ['Variablen', '${NAME} funktioniert in jedem Feld, auch in Zahlenfeldern. Die Werte kommen pro Umgebung (dev/prod …) aus dem Tab Variablen.'],
+    ['Variablen', '${NAME} funktioniert in jedem Feld, auch in Zahlenfeldern. Im Tab Variablen gelten „Für alle Dateien“ global und „Nur diese Datei“ lokal. Lokale Werte ersetzen gleichnamige globale Werte – auch wenn sie leer sind. Beide Bereiche verwenden die aktive Umgebung (dev/prod …).'],
     ['Extras', 'Feld, Liste und YAML-Einmischen setzen jedes beliebige Feld, auch wenn es keinen eigenen Block dafür gibt.'],
     ['Import', 'YAML-Dateien, eingefügtes YAML oder die Ausgabe von oc/kubectl get -o yaml. Cluster-Felder (status, uid, managedFields …) werden entfernt.'],
     ['Vorlagen', 'Unter Vorlagen gibt es fertige Block-Kombinationen. Eigene speicherst du per Rechtsklick → „Ab hier als Vorlage speichern…“.'],

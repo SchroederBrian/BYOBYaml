@@ -1,0 +1,16 @@
+export const resource0: { (value: unknown): boolean; errors?: any[] | null };
+export const resource1: { (value: unknown): boolean; errors?: any[] | null };
+export const resource2: { (value: unknown): boolean; errors?: any[] | null };
+export const resource3: { (value: unknown): boolean; errors?: any[] | null };
+export const resource4: { (value: unknown): boolean; errors?: any[] | null };
+export const resource5: { (value: unknown): boolean; errors?: any[] | null };
+export const resource6: { (value: unknown): boolean; errors?: any[] | null };
+export const resource7: { (value: unknown): boolean; errors?: any[] | null };
+export const resource8: { (value: unknown): boolean; errors?: any[] | null };
+export const resource9: { (value: unknown): boolean; errors?: any[] | null };
+export const resource10: { (value: unknown): boolean; errors?: any[] | null };
+export const resource11: { (value: unknown): boolean; errors?: any[] | null };
+export const resource12: { (value: unknown): boolean; errors?: any[] | null };
+export const resource13: { (value: unknown): boolean; errors?: any[] | null };
+export const resource14: { (value: unknown): boolean; errors?: any[] | null };
+export const resource15: { (value: unknown): boolean; errors?: any[] | null };

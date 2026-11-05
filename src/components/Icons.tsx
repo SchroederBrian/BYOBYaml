@@ -8,6 +8,8 @@ const P: Record<string, string> = {
   copy: 'M9 9h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2zM5 15V5a2 2 0 0 1 2-2h8',
   trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
   plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
+  graph: 'M3 3h6v6H3zM15 3h6v6h-6zM9 15h6v6H9zM6 9v3h12V9M12 12v3',
   x: 'M6 6l12 12M18 6L6 18',
   chevron: 'M6 9l6 6 6-6',
   check: 'M5 12l5 5L20 7',

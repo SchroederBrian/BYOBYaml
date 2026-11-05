@@ -1,16 +1,17 @@
 // Built-in snippets: small, reusable block combinations (not full projects).
 import { b, B, chainJson } from './project';
+import type { FileKind } from './project';
 
 export interface BuiltinSnippet {
   id: string;
   group: string;
   name: string;
   hint: string;
-  kind: 'compose' | 'k8s';
+  kind: FileKind;
   blocks: B[];
 }
 
-const S = (kind: 'compose' | 'k8s', group: string, name: string, hint: string, blocks: B[]): BuiltinSnippet => ({
+const S = (kind: FileKind, group: string, name: string, hint: string, blocks: B[]): BuiltinSnippet => ({
   id: `${kind}:${name}`,
   group,
   name,
@@ -20,6 +21,9 @@ const S = (kind: 'compose' | 'k8s', group: string, name: string, hint: string, b
 });
 
 export const BUILTIN_SNIPPETS: BuiltinSnippet[] = [
+  S('dockerfile','Dockerfile','Minimales Alpine-Image','Eine vollständige Dockerfile; Basis für eigene Build-Schritte',[b('df_file'),b('df_from',{IMAGE:'alpine:3'}),b('df_workdir',{PATH:'/app'}),b('df_cmd',{ARGS:'sh'})]),
+  S('dockerfile','Dockerfile','Statischer Webserver','Dateien aus dem Build-Kontext mit nginx ausliefern',[b('df_file'),b('df_from',{IMAGE:'nginx:alpine'}),b('df_copy',{SOURCES:'.',DEST:'/usr/share/nginx/html/'}),b('df_expose',{PORT:80,PROTO:'tcp'})]),
+  S('dockerfile','Dockerfile','Multi-Stage: Dateien vorbereiten','Benannte Build-Phase und COPY --from; Quelldateien liegen im Build-Kontext',[b('df_file'),b('df_from',{IMAGE:'alpine:3',STAGE:'build'}),b('df_workdir',{PATH:'/src'}),b('df_copy',{SOURCES:'.',DEST:'/src/'}),b('df_run',{COMMAND:'mkdir -p /out\ncp -R /src/. /out/'}),b('df_from',{IMAGE:'nginx:alpine'}),b('df_copy',{SOURCES:'/out/',DEST:'/usr/share/nginx/html/',FROM:'build'}),b('df_expose',{PORT:80,PROTO:'tcp'})]),
   // ---------------- Compose: services ----------------
   S('compose', 'Datenbanken', 'PostgreSQL', 'Service mit Volume, Healthcheck und Restart', [
     b('compose_service', { NAME: 'db', IMAGE: 'postgres:16-alpine' }, [

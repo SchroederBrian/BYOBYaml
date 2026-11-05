@@ -1,6 +1,9 @@
 // Shared types + tiny DSL helpers for defining BYOBYaml blocks.
 
 export type CatId =
+  | 'dockerImage'
+  | 'dockerBuild'
+  | 'dockerRuntime'
   | 'compose'
   | 'service'
   | 'resources'
@@ -25,6 +28,9 @@ export interface Category {
 const cat = (id: CatId, name: string, colour: string): Category => ({ id, name, colour, secondary: shade(colour, 0.18), tertiary: shade(colour, -0.22) });
 
 export const CATEGORIES: Category[] = [
+  cat('dockerImage', 'Image & Phasen', '#3f7fd8'),
+  cat('dockerBuild', 'Build-Schritte', '#bf4c66'),
+  cat('dockerRuntime', 'Start & Laufzeit', '#2b8fa8'),
   cat('compose', 'Compose', '#3f7fd8'),
   cat('service', 'Service', '#7a68d4'),
   cat('resources', 'Ressourcen', '#c08a1e'),

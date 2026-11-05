@@ -16,3 +16,7 @@ byobyaml-deploy.zip
 deploy-parts/
 scripts/samples-private/
 .playwright-mcp/
+.aapanel-api-key
+output/
+.deploy-build/
+.playwright-cli/

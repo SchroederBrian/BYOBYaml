@@ -1,0 +1,52 @@
+.modal.wide:has(.custom-designer) { width: min(1440px, calc(100vw - 24px)); max-width: calc(100vw - 24px); }
+.modal:has(.custom-designer) .modal-body { padding: 14px; }
+.custom-designer { min-width: 0; }
+.custom-library-row { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.custom-library-row > label { flex: 1; min-width: 220px; }
+.custom-designer label:not(.custom-expose) { display: grid; gap: 5px; font-size: 12px; min-width: 0; }
+.custom-designer .input { width: 100%; min-width: 0; }
+.custom-intro { color: var(--text2); font-size: 12px; line-height: 1.55; margin: 8px 0 12px; }
+.custom-metadata { display: grid; grid-template-columns: minmax(180px,1fr) minmax(240px,2fr) 64px; gap: 12px; margin-bottom: 12px; }
+.custom-metadata input[type=color] { height: 30px; padding: 2px; border: 1px solid var(--line2); background: var(--bg0); border-radius: var(--radius); width: 100%; }
+.custom-start-row { display: grid; grid-template-columns: 150px minmax(180px,1fr) minmax(200px,1fr); gap: 12px; align-items: end; margin-bottom: 12px; }
+.custom-start-row > span { color: var(--text2); font-size: 12px; }
+.custom-main { display: grid; grid-template-columns: minmax(0,1fr) 340px; height: min(65vh,760px); min-height: 460px; border: 1px solid var(--line2); border-radius: var(--radius); overflow: hidden; }
+.custom-build { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg1); }
+.custom-section-head { padding: 10px; font-size: 12px; font-weight: 600; background: var(--bg2); border-bottom: 1px solid var(--line); }
+.custom-workspace { flex: 1; min-height: 0; position: relative; isolation: isolate; }
+.custom-inspector { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line2); background: var(--bg1); }
+.custom-inspector-scroll { flex: 1; min-height: 0; padding: 10px; overflow: auto; }
+.custom-field { padding: 0 0 12px; margin-bottom: 12px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.custom-expose { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.custom-expose input { accent-color: var(--accent); }
+.custom-field details { font-size: 12px; color: var(--text2); }
+.custom-field details label { margin-top: 8px; }
+.custom-field summary, .custom-yaml summary { cursor: pointer; color: var(--text2); }
+.custom-number-limits { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.custom-field-order { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.custom-field .textarea { min-height: 64px; width: 100%; }
+.custom-preview { height: 150px; position: relative; background: var(--bg2); margin: 8px 0 12px; }
+.custom-validation { display: flex; align-items: center; gap: 7px; font-size: 12px; padding: 8px 0; }
+.custom-validation.valid { color: var(--ok); }
+.custom-validation.invalid, .custom-api-error { color: var(--danger); }
+.custom-api-error { font-size: 12px; display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.custom-issues { padding-left: 18px; color: var(--danger); font-size: 12px; line-height: 1.5; }
+.custom-issues li { margin: 6px 0; overflow-wrap: anywhere; }
+.custom-issues code { display: block; color: var(--text2); font-size: 10px; overflow-wrap: anywhere; }
+.custom-issues button { color: inherit; border: 0; padding: 0; background: none; text-align: left; text-decoration: underline; text-underline-offset: 3px; }
+.custom-yaml { font-size: 12px; }
+.custom-yaml p { color: var(--text2); }
+.custom-yaml pre { background: var(--bg0); padding: 8px; overflow: auto; max-height: 260px; font: 11px/1.5 var(--mono); }
+.block-palette-search.with-designer { height: 90px; }
+.block-host-searchable.with-designer .blocklyToolbox { padding-top: 94px !important; }
+.block-designer-button { display: flex; align-items: center; justify-content: center; gap: 5px; width: 100%; height: 26px; margin-top: 5px; padding: 0 3px; border: 1px solid var(--line2); border-radius: 4px; background: var(--bg3); color: var(--text); font-size: 11px; }
+.block-designer-button:hover { border-color: var(--accent); }
+@media(max-width:820px) {
+  .custom-metadata { grid-template-columns: minmax(0,1fr) 48px; }
+  .custom-metadata > label:nth-child(2) { grid-column: 1/-1; grid-row: 2; }
+  .custom-start-row { grid-template-columns: 1fr; }
+  .custom-library-row > label { min-width: 100%; }
+  .custom-main { grid-template-columns: 1fr; height: auto; }
+  .custom-build { min-height: 420px; }
+  .custom-inspector { border-left: 0; border-top: 1px solid var(--line2); max-height: 560px; }
+}

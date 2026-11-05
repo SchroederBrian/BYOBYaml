@@ -1,5 +1,6 @@
 // All BYOBYaml blocks. Each block = look (msg/args) + what it writes into the YAML (gen).
 import YAML, { Scalar } from 'yaml';
+import { DOCKERFILE_BLOCKS } from '../dockerfile';
 import { at, BlockSpec, C, Ctx, D, deepMerge, list, M, N, portVal, setPath, splitArgs, T } from './types';
 
 const POD_KINDS = ['Deployment', 'StatefulSet', 'DaemonSet', 'Job', 'CronJob'];
@@ -1006,5 +1007,5 @@ function b64(s: string) {
   return btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 }
 
-export const ALL_BLOCKS: BlockSpec[] = [...compose, ...service, ...resources, ...metadata, ...pod, ...container, ...network, ...data, ...build, ...scaling, ...extras];
+export const ALL_BLOCKS: BlockSpec[] = [...compose, ...service, ...resources, ...metadata, ...pod, ...container, ...network, ...data, ...build, ...scaling, ...extras, ...DOCKERFILE_BLOCKS];
 export const SPEC_BY_TYPE: Record<string, BlockSpec> = Object.fromEntries(ALL_BLOCKS.map((b) => [b.type, b]));

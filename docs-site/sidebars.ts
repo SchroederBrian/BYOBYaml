@@ -38,7 +38,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Funktionen',
       collapsed: false,
-      items: ['funktionen/variablen', 'funktionen/import', 'funktionen/export', 'funktionen/byob-format', 'funktionen/speicherung', 'funktionen/extras'],
+      items: ['funktionen/variablen', 'funktionen/dockerfile', 'funktionen/import', 'funktionen/export', 'funktionen/byob-format', 'funktionen/speicherung', 'funktionen/extras'],
     },
     {
       type: 'category',

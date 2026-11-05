@@ -3,8 +3,10 @@ import { DragEvent, KeyboardEvent, MouseEvent, useEffect, useMemo, useRef, useSt
 import { baseName, cleanFolder, isInside, joinPath, normalizeFolders, parentOf, withParents } from '../folders';
 import { FileKind, ProjectFile, uid, uniqueName } from '../project';
 import { Icon } from './Icons';
+import { isGuest } from '../storage';
 
 interface Props {
+  projectId: string;
   files: ProjectFile[];
   folders: string[];
   activeId: string;
@@ -27,9 +29,34 @@ const DND = 'application/x-byob-explorer';
 const byName = (a: string, b: string) => a.localeCompare(b, 'de', { sensitivity: 'base', numeric: true });
 const sameFolder = (f: ProjectFile, folder: string) => (f.folder ?? '') === folder;
 
+const folderStateKey = (projectId: string) => `byobyaml.v2.explorer.${projectId}`;
+function loadCollapsed(projectId: string): Set<string> {
+  try {
+    if (isGuest()) return new Set();
+    const saved: unknown = JSON.parse(localStorage.getItem(folderStateKey(projectId)) ?? '[]');
+    return new Set(Array.isArray(saved) ? saved.filter((path): path is string => typeof path === 'string' && !!path) : []);
+  } catch {
+    return new Set();
+  }
+}
+
 export default function Explorer(p: Props) {
   const { files, folders, activeId, currentFolder } = p;
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsedState] = useState(() => loadCollapsed(p.projectId));
+  const collapsedRef = useRef(collapsed);
+  const setCollapsed = (update: (current: Set<string>) => Set<string>) => {
+    const next = update(collapsedRef.current);
+    if (next === collapsedRef.current) return;
+    collapsedRef.current = next;
+    setCollapsedState(next);
+    try {
+      // Write immediately so a reload right after a click keeps the new state (guests: nothing persisted).
+      if (isGuest()) return;
+      localStorage.setItem(folderStateKey(p.projectId), JSON.stringify([...next]));
+    } catch {
+      // Keep the explorer usable when browser storage is unavailable.
+    }
+  };
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [anchor, setAnchor] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
@@ -48,9 +75,12 @@ export default function Explorer(p: Props) {
     });
   }, [files]);
 
-  // open the folder of the active file
+  // Reveal newly selected files, but respect saved folders when opening a project.
   const active = files.find((f) => f.id === activeId);
+  const previousActiveId = useRef(activeId);
   useEffect(() => {
+    if (previousActiveId.current === activeId) return;
+    previousActiveId.current = activeId;
     const f = active?.folder;
     if (!f) return;
     setCollapsed((c) => {
@@ -162,6 +192,7 @@ export default function Explorer(p: Props) {
       files.map((f) => (f.folder && isInside(f.folder, src) ? { ...f, folder: re(f.folder) } : f)),
       keepFolders(folders.map(re)),
     );
+    setCollapsed((c) => new Set([...c].map(re)));
     if (isInside(currentFolder, src)) p.setCurrentFolder(re(currentFolder));
   };
 
@@ -185,6 +216,7 @@ export default function Explorer(p: Props) {
       files.map((f) => (f.folder && isInside(f.folder, path) ? { ...f, folder: re(f.folder) } : f)),
       keepFolders(folders.map(re)),
     );
+    setCollapsed((c) => new Set([...c].map(re)));
     if (isInside(currentFolder, path)) p.setCurrentFolder(re(currentFolder));
   };
 
@@ -208,6 +240,7 @@ export default function Explorer(p: Props) {
     });
     const re = (x: string) => (isInside(x, path) ? joinPath(parent, x.slice(path.length).replace(/^\//, '')) : x);
     p.onUpdate(next, keepFolders(folders.filter((x) => x !== path).map(re).filter(Boolean)));
+    setCollapsed((c) => new Set([...c].filter((x) => x !== path).map(re)));
     if (isInside(currentFolder, path)) p.setCurrentFolder(parent);
   };
 
@@ -337,6 +370,7 @@ export default function Explorer(p: Props) {
           <button className="icon-btn" title="Neue Kubernetes-Datei" onClick={() => p.onAddFile('k8s')}>
             <Icon name="helm" />
           </button>
+          <button className="icon-btn" title="Neue Dockerfile" onClick={() => p.onAddFile('dockerfile')}><Icon name="box" /></button>
           <button className="icon-btn" title={`Neuer Ordner${currentFolder ? ` in „${baseName(currentFolder)}“` : ''}`} onClick={newFolder}>
             <Icon name="folderPlus" />
           </button>
@@ -466,7 +500,7 @@ export default function Explorer(p: Props) {
                 onDoubleClick={() => !showChecks && setRenaming({ kind: 'file', id: r.file.id })}
               >
                 {showChecks ? <span className={`ex-check ${selected.has(r.file.id) ? 'on' : ''}`} /> : <span className="chev-space" />}
-                <span className={`kind kind-${r.file.kind}`}>{r.file.kind === 'compose' ? 'DC' : 'K8'}</span>
+                <span className={`kind kind-${r.file.kind}`}>{r.file.kind === 'dockerfile' ? 'DF' : r.file.kind === 'compose' ? 'DC' : 'K8'}</span>
                 {renaming?.kind === 'file' && renaming.id === r.file.id ? (
                   <RenameInput value={r.file.name} onDone={(v) => (v === null ? setRenaming(null) : renameFile(r.file.id, v))} />
                 ) : (

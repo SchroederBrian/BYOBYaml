@@ -1,0 +1,18 @@
+{
+  "apps/v1:DaemonSet": "resource0",
+  "apps/v1:Deployment": "resource1",
+  "apps/v1:ReplicaSet": "resource2",
+  "apps/v1:StatefulSet": "resource3",
+  "autoscaling/v1:HorizontalPodAutoscaler": "resource4",
+  "autoscaling/v2:HorizontalPodAutoscaler": "resource5",
+  "batch/v1:CronJob": "resource6",
+  "batch/v1:Job": "resource7",
+  "v1:ConfigMap": "resource8",
+  "v1:Namespace": "resource9",
+  "v1:PersistentVolumeClaim": "resource10",
+  "v1:Pod": "resource11",
+  "v1:Secret": "resource12",
+  "v1:Service": "resource13",
+  "v1:ServiceAccount": "resource14",
+  "networking.k8s.io/v1:Ingress": "resource15"
+}

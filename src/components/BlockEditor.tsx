@@ -1,10 +1,14 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as Blockly from 'blockly/core';
 import * as De from 'blockly/msg/de';
 import { buildTheme, buildToolbox, editorHooks, FIXED_FLYOUT, registerBlocks, registerDynamicCategories, START_SCALE } from '../blocks/register';
 import { generate, GenResult } from '../blocks/generator';
 import { FileKind, Snippet } from '../project';
 import { CanvasMode, enableSelection, patchChainCopy, Selection } from '../blocks/multiselect';
+import { searchBlocks, SEARCH_PAGE_SIZE } from '../blocks/search';
+import { Icon } from './Icons';
+import type { CustomBlockDefinition } from '../custom-blocks/model';
+import '../styles/block-search.css';
 
 export interface BlockEditorHandle {
   load(state: any, kind: FileKind, layout?: boolean): void;
@@ -20,6 +24,7 @@ export interface BlockEditorHandle {
 }
 
 interface Props {
+  fileKey: string;
   vars: Record<string, string>;
   userSnippets: Snippet[];
   onChange: (res: GenResult) => void;
@@ -27,10 +32,22 @@ interface Props {
   onShareSnippet?: (state: any) => void;
   mode: CanvasMode;
   onSelectionChange?: (count: number) => void;
+  onDesignCustomBlocks?: (definition?: CustomBlockDefinition) => void;
+  customLibraryVersion?: string;
 }
 
-const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ vars, userSnippets, onChange, onSaveSnippet, onShareSnippet, mode, onSelectionChange }, ref) {
+const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ fileKey, vars, userSnippets, onChange, onSaveSnippet, onShareSnippet, mode, onSelectionChange, onDesignCustomBlocks, customLibraryVersion }, ref) {
   const host = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState('');
+  const [searchLimit, setSearchLimit] = useState(SEARCH_PAGE_SIZE);
+  const queryRef = useRef(query);
+  const limitRef = useRef(searchLimit);
+  queryRef.current = query;
+  limitRef.current = searchLimit;
+  const appliedSearch = useRef(false);
+  const previousCategory = useRef<string | undefined>(undefined);
+  const input = useRef<HTMLInputElement>(null);
+  const results = useMemo(() => searchBlocks(query, userSnippets, searchLimit), [query, userSnippets, searchLimit, customLibraryVersion]);
   const ws = useRef<Blockly.WorkspaceSvg | null>(null);
   const loading = useRef(false);
   const onChangeRef = useRef(onChange);
@@ -45,12 +62,27 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   snippetsRef.current = userSnippets;
   editorHooks.onSaveSnippet = onSaveSnippet;
   editorHooks.onShareSnippet = onShareSnippet;
+  editorHooks.onDesignCustomBlocks = onDesignCustomBlocks;
   editorHooks.userSnippets = () => snippetsRef.current;
 
   // never report (and thereby save) a workspace that has not been loaded with a file yet
-  const loaded = useRef(false);
+  const loaded = useRef<string | null>(null);
+  const fileKeyRef = useRef(fileKey);
+  fileKeyRef.current = fileKey;
   const emit = () => {
-    if (ws.current && loaded.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current, { passThroughUnknownVars: kindRef.current === 'compose' }));
+    if (ws.current && loaded.current === fileKeyRef.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current, { fileKind:kindRef.current, passThroughUnknownVars: kindRef.current === 'compose' }));
+  };
+  const updatePalette = () => {
+    const workspace = ws.current;
+    if (!workspace) return;
+    const searching = !!queryRef.current.trim();
+    if (searching && !appliedSearch.current) previousCategory.current = (workspace.getToolbox()?.getSelectedItem() as Blockly.ToolboxCategory | null)?.getName?.();
+    workspace.updateToolbox(buildToolbox(kindRef.current, queryRef.current, snippetsRef.current, limitRef.current));
+    const toolbox = workspace.getToolbox();
+    const items = toolbox?.getToolboxItems() ?? [];
+    if (searching) toolbox?.setSelectedItem(items[0] ?? null);
+    else if (appliedSearch.current) toolbox?.setSelectedItem(items.find((item) => (item as Blockly.ToolboxCategory).getName?.() === previousCategory.current) ?? null);
+    appliedSearch.current = searching;
   };
 
   useEffect(() => {
@@ -93,6 +125,15 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   }, []);
 
   useEffect(() => selection.current?.setMode(mode), [mode]);
+  useEffect(() => { updatePalette(); emit(); }, [customLibraryVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!query.trim() && !appliedSearch.current) return;
+    const timer = window.setTimeout(updatePalette, 120);
+    return () => window.clearTimeout(timer);
+    // The palette uses refs for the current workspace, file kind and snippets.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, searchLimit, userSnippets]);
 
   // variables changed → regenerate
   useEffect(() => {
@@ -115,7 +156,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       loading.current = true;
       selection.current?.clear();
       try {
-        w.updateToolbox(buildToolbox(kind));
+        updatePalette();
         Blockly.Events.disable();
         w.clear();
         if (state) Blockly.serialization.workspaces.load(state, w);
@@ -123,7 +164,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       } finally {
         Blockly.Events.enable();
         loading.current = false;
-        loaded.current = true;
+        loaded.current = fileKeyRef.current;
       }
       emit();
       // place first stack top-left next to the toolbox
@@ -171,7 +212,17 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
     },
   }));
 
-  return <div className="block-host" ref={host} />;
+  return <>
+    <div className={`block-host block-host-searchable${onDesignCustomBlocks ? ' with-designer' : ''}`} ref={host} />
+    <div className={`block-palette-search${onDesignCustomBlocks ? ' with-designer' : ''}`} role="search" aria-label="Blockkatalog durchsuchen">
+      <div className="block-search-field"><Icon name="search" size={13} className="block-search-icon" /><input ref={input} type="search" aria-label="Blöcke suchen" placeholder="Blöcke suchen" autoComplete="off" spellCheck={false} value={query} onChange={(event) => { setQuery(event.target.value); setSearchLimit(SEARCH_PAGE_SIZE); }} onKeyDown={(event) => {
+        if (!event.ctrlKey && !event.metaKey) event.stopPropagation();
+        if (event.key === 'Escape') { event.preventDefault(); setQuery(''); setSearchLimit(SEARCH_PAGE_SIZE); }
+      }} />{query && <button type="button" title="Blocksuche leeren" aria-label="Blocksuche leeren" onClick={() => { setQuery(''); setSearchLimit(SEARCH_PAGE_SIZE); input.current?.focus(); }}><Icon name="x" size={12} /></button>}</div>
+      <div className="block-search-footer"><div className="block-search-status" role="status" aria-live="polite">{query.trim() ? `${results.shown < results.total ? `${results.shown}/${results.total}` : results.total} Treffer` : 'Alle Kategorien'}</div>{results.shown < results.total && <button className="block-search-more" type="button" aria-label="Weitere Treffer anzeigen" title="Weitere 40 Treffer anzeigen" onClick={() => setSearchLimit((limit) => limit + SEARCH_PAGE_SIZE)}><Icon name="plus" size={11} />40</button>}</div>
+      {onDesignCustomBlocks && <button className="block-designer-button" onClick={() => onDesignCustomBlocks()}><Icon name="plus" size={12} /> Eigene Blocktypen</button>}
+    </div>
+  </>;
 });
 
 export default BlockEditor;

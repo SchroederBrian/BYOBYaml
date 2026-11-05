@@ -95,6 +95,75 @@ const localDb: DbApi = {
 export const db: DbApi = window.byob?.db ?? localDb;
 export const isDesktop = !!window.byob?.isElectron;
 
+// ---------- guest mode (web, no account) ----------
+// Everything lives in memory only: nothing reaches localStorage or the server,
+// a reload starts over. Entered from the login screen or with ?gast in the URL.
+function memoryDb(): DbApi {
+  const projects = new Map<string, { p: Project; updatedAt: number }>();
+  const snippets = new Map<string, Snippet>();
+  const settings = new Map<string, any>();
+  const copy = <T>(v: T): T => structuredClone(v);
+  return {
+    async listProjects() {
+      return [...projects.values()]
+        .map(({ p, updatedAt }) => ({ id: p.id, title: p.title, fileCount: p.files.length, createdAt: p.createdAt ?? updatedAt, updatedAt }))
+        .sort((a, b) => b.updatedAt - a.updatedAt);
+    },
+    async getProject(id) {
+      const hit = projects.get(id);
+      return hit ? copy(hit.p) : null;
+    },
+    async saveProject(p) {
+      const now = Date.now();
+      projects.set(p.id, { p: copy(p), updatedAt: now });
+      return now;
+    },
+    async deleteProject(id) {
+      return projects.delete(id);
+    },
+    async listSnippets() {
+      return [...snippets.values()].map(copy).sort((a, b) => a.name.localeCompare(b.name));
+    },
+    async saveSnippet(s) {
+      snippets.set(s.id, copy({ ...s, createdAt: s.createdAt ?? Date.now() }));
+      return true;
+    },
+    async deleteSnippet(id) {
+      snippets.delete(id);
+      return true;
+    },
+    async getSetting(key) {
+      return settings.get(key) ?? null;
+    },
+    async setSetting(key, value) {
+      settings.set(key, value);
+      return true;
+    },
+    async info() {
+      return { file: 'Gastmodus: nur im Arbeitsspeicher, nichts wird gespeichert' };
+    },
+  };
+}
+
+let guest = false;
+export const isGuest = () => guest;
+
+/** Switch storage to memory. Must run before the editor boots; not available in the desktop app. */
+export function enterGuestMode() {
+  if (guest || window.byob) return;
+  guest = true;
+  Object.assign(db, memoryDb());
+}
+
+/** Leave guest mode: reload without ?gast so the login screen shows again. */
+export function leaveGuestMode() {
+  const url = new URL(location.href);
+  url.searchParams.delete('gast');
+  location.assign(url.toString());
+}
+
+if (!window.byob && new URLSearchParams(location.search).has('gast')) enterGuestMode();
+
 // ---------- file IO ----------
 export async function saveText(defaultName: string, content: string, ext: string[]): Promise<string | null> {
   if (window.byob) return window.byob.saveFile({ defaultName, content, filters: [{ name: ext.join(', '), extensions: ext }] });
@@ -113,8 +182,9 @@ export async function openTexts(ext: string[], multi = true): Promise<{ name: st
     const input = document.createElement('input');
     input.type = 'file';
     input.multiple = multi;
-    input.accept = ext.map((e) => '.' + e).join(',');
+    input.accept = ext.includes('*') ? '' : ext.map((e) => '.' + e).join(',');
     input.onchange = async () => resolve(await Promise.all([...(input.files ?? [])].map(async (f) => ({ name: f.name, content: await f.text() }))));
+    input.oncancel = () => resolve([]);
     input.click();
   });
 }

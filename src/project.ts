@@ -1,7 +1,12 @@
 // Project model: a project holds YAML files (each with a block workspace), variables and environments.
 import { cleanFolder, normalizeFolders } from './folders';
+import { normalizeVault, type SecretVaultEnvelope } from './secrets';
+import { normalizeCustomSnapshots } from './custom-blocks/model';
+import { dockerfileState } from './dockerfile';
 
-export type FileKind = 'compose' | 'k8s';
+export type FileKind = 'compose' | 'k8s' | 'dockerfile';
+export const fileKindLabel = (kind?: FileKind) => kind === 'dockerfile' ? 'Dockerfile' : kind === 'compose' ? 'Docker Compose' : 'Kubernetes / OpenShift';
+export const outputExtensions = (kind?: FileKind) => kind === 'dockerfile' ? ['*'] : ['yaml','yml'];
 
 export interface ProjectFile {
   id: string;
@@ -9,6 +14,8 @@ export interface ProjectFile {
   kind: FileKind;
   /** Blockly workspace serialization */
   state: any;
+  /** Variables visible only to this file; same names override project variables. */
+  variables?: Variable[];
   /** Run Blockly "clean up" once after loading (imports). */
   needsLayout?: boolean;
   /** folder in the file explorer, e.g. "base/apps" ('' / missing = top level) */
@@ -33,6 +40,8 @@ export interface Project {
   activeEnv: string;
   /** folders of the file explorer (also empty ones) */
   folders?: string[];
+  /** Authenticated ciphertext only. Master password and unlocked secrets are never serialized. */
+  secretVault?: SecretVaultEnvelope;
 }
 
 export interface ProjectMeta {
@@ -59,8 +68,9 @@ export function normalizeProject(p: any): Project {
   if (!p || p.format !== 'byobyaml' || !Array.isArray(p.files)) throw new Error('Keine gültige BYOBYaml-Projektdatei');
   const envs: string[] = Array.isArray(p.envs) && p.envs.length ? p.envs : ['dev'];
   const files: ProjectFile[] = p.files.map((f: any) => {
+    normalizeCustomSnapshots(f.state);
     const folder = cleanFolder(f.folder);
-    return { id: f.id || uid(), name: f.name || 'datei.yaml', kind: f.kind === 'compose' ? 'compose' : 'k8s', state: f.state, needsLayout: f.needsLayout, ...(folder ? { folder } : {}) };
+    return { ...(Array.isArray(f.variables) ? { variables: normalizeVariables(f.variables) } : {}), id: f.id || uid(), name: f.name || (f.kind === 'dockerfile' ? 'Dockerfile' : 'datei.yaml'), kind: f.kind === 'dockerfile' ? 'dockerfile' : f.kind === 'compose' ? 'compose' : 'k8s', state: f.state, needsLayout: f.needsLayout, ...(folder ? { folder } : {}) };
   });
   return {
     format: 'byobyaml',
@@ -69,11 +79,22 @@ export function normalizeProject(p: any): Project {
     title: p.title || 'Unbenannt',
     createdAt: p.createdAt,
     files,
-    variables: Array.isArray(p.variables) ? p.variables.filter((v: any) => v && v.name).map((v: any) => ({ name: String(v.name), values: { ...(v.values || {}) } })) : [],
+    variables: normalizeVariables(p.variables),
     envs,
     activeEnv: envs.includes(p.activeEnv) ? p.activeEnv : envs[0],
     folders: normalizeFolders(Array.isArray(p.folders) ? p.folders : [], files.map((f) => f.folder ?? '')),
+    ...(p.secretVault != null ? { secretVault: normalizeVault(p.secretVault) } : {}),
   };
+}
+
+function normalizeVariables(variables: any): Variable[] {
+  return Array.isArray(variables) ? variables.filter((v: any) => v && v.name).map((v: any) => ({ name: String(v.name), values: { ...(v.values || {}) } })) : [];
+}
+
+/** Resolve globals first, then this file's overrides, for the active environment. */
+export function resolveVariables(project: Pick<Project, 'variables' | 'activeEnv'> | null, file?: Pick<ProjectFile, 'variables'>): Record<string, string> {
+  if (!project) return {};
+  return Object.fromEntries([...project.variables, ...(file?.variables ?? [])].filter((v) => v.name).map((v) => [v.name, v.values[project.activeEnv] ?? '']));
 }
 
 // ---------- tiny builders for block serialization ----------
@@ -115,6 +136,7 @@ export function file(name: string, kind: FileKind, ...stacks: any[]): ProjectFil
 }
 
 export function emptyFile(kind: FileKind, existing: string[]): ProjectFile {
+  if (kind === 'dockerfile') return { id:uid(),name:uniqueName('Dockerfile',existing),kind,state:dockerfileState([{type:'df_from',fields:{IMAGE:'alpine:3'}},{type:'df_workdir',fields:{PATH:'/app'}},{type:'df_cmd',fields:{ARGS:'sh'}}]) };
   const base = kind === 'compose' ? 'docker-compose' : 'resource';
   const name = uniqueName(`${base}.yaml`, existing);
   const starter = kind === 'compose' ? stack(b('compose_file', { NAME: '' }), []) : stack(b('k8s_deployment', { NAME: 'my-app', REPLICAS: 1 }), []);
@@ -172,6 +194,6 @@ export function parseByob(text: string): { projects: Project[]; snippets: Snippe
   if (Array.isArray(j.files)) return { projects: [normalizeProject(j)], snippets: [] };
   return {
     projects: (j.projects ?? []).map(normalizeProject),
-    snippets: (j.snippets ?? []).filter((s: any) => s?.block && s?.name),
+    snippets: (j.snippets ?? []).filter((s: any) => s?.block && s?.name).map((snippet: Snippet) => ({ ...snippet, block: normalizeCustomSnapshots(snippet.block) })),
   };
 }

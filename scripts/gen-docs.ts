@@ -36,6 +36,7 @@ function wrap(blocks: B[]): B[] {
   const first = SPEC[blocks[0].type];
   if (first.shape === 'hat') return blocks;
   const scope = first.scope ?? [];
+  if (scope.includes('dockerfile')) return [b('df_file'),b('df_from',{IMAGE:'alpine:3'}),...blocks];
   if (scope.includes('service')) return [b('compose_file', { NAME: '' }), b('compose_service', { NAME: 'web', IMAGE: 'nginx:latest' }, blocks)];
   if (scope.includes('compose')) return [b('compose_file', { NAME: '' }), ...blocks];
   if (scope.includes('container')) return [KIND_HAT.Deployment, b('pod_container', { NAME: 'app', IMAGE: 'nginx:latest' }, blocks)];
@@ -49,7 +50,7 @@ function wrap(blocks: B[]): B[] {
 function yamlOf(blocks: B[]): { yaml: string; warnings: string[] } {
   const ws = new Blockly.Workspace();
   Blockly.serialization.workspaces.load(wsState({ ...chainJson(blocks), x: 0, y: 0 }), ws);
-  const r = generate(ws);
+  const r = generate(ws, {}, { fileKind: blocks[0]?.type === 'df_file' ? 'dockerfile' : undefined });
   ws.dispose();
   return { yaml: r.yaml, warnings: r.warnings.map((w) => w.msg) };
 }
@@ -60,7 +61,7 @@ const code = (s: string) => '`' + s.replace(/`/g, 'ˋ') + '`';
 
 function defaultOf(a: ArgDef): string {
   switch (a.kind) {
-    case 'text':
+    case 'text': case 'multi':
       return a.value === '' ? '*(leer)*' : code(a.value);
     case 'num':
       return code(String(a.value));
@@ -70,7 +71,7 @@ function defaultOf(a: ArgDef): string {
       return code(a.options[0][0]);
   }
 }
-const KIND_LABEL: Record<ArgDef['kind'], string> = { text: 'Text', num: 'Zahl', dd: 'Auswahl', chk: 'Häkchen' };
+const KIND_LABEL: Record<ArgDef['kind'], string> = { text: 'Text', multi:'Mehrzeiliger Text', num: 'Zahl', dd: 'Auswahl', chk: 'Häkchen' };
 
 function title(spec: BlockSpec): string {
   return spec.msg.replace(/%(\d+)/g, '…').replace(/\s+/g, ' ').trim();
@@ -96,6 +97,9 @@ function exampleBlocks(spec: BlockSpec): B[] {
 
 // ---------- category pages ----------
 const CAT_INTRO: Record<CatId, string> = {
+  dockerImage: 'Dockerfile-Grundgerüst: Basis-Images, Build-Argumente und mehrere Build-Phasen.',
+  dockerBuild: 'Dockerfile-Build-Schritte: Dateien kopieren, Arbeitsverzeichnis, Befehle, Cache und Secret-Mounts.',
+  dockerRuntime: 'Dockerfile-Laufzeit: Umgebung, Benutzer, Ports, Startprogramm und Healthcheck.',
   compose: 'Grundgerüst einer `docker-compose.yml`: der Startblock, Services sowie projektweite Volumes, Netzwerke und Secrets.',
   service: 'Optionen eines Compose-Services. Diese Blöcke gehören **in** einen `Service`-Klammerblock.',
   resources: 'Startblöcke für Kubernetes- und OpenShift-Ressourcen. Jeder Startblock erzeugt ein YAML-Dokument; mehrere in einer Datei werden mit `---` getrennt.',
@@ -110,6 +114,9 @@ const CAT_INTRO: Record<CatId, string> = {
 };
 
 const SLUG: Record<CatId, string> = {
+  dockerImage: 'dockerfile-image',
+  dockerBuild: 'dockerfile-build',
+  dockerRuntime: 'dockerfile-laufzeit',
   compose: 'compose',
   service: 'service',
   resources: 'ressourcen',
@@ -184,8 +191,8 @@ const snip: string[] = [
   `BYOBYaml bringt ${BUILTIN_SNIPPETS.length} Vorlagen mit. Du findest sie im Editor unter **Vorlagen** in der Palette. Zieh eine Vorlage auf die Fläche oder direkt an die passende Stelle in einem Stapel.`,
   '',
 ];
-for (const kind of ['compose', 'k8s'] as const) {
-  snip.push(`## ${kind === 'compose' ? 'Docker Compose' : 'Kubernetes & OpenShift'}`, '');
+for (const kind of ['compose', 'k8s', 'dockerfile'] as const) {
+  snip.push(`## ${kind === 'dockerfile' ? 'Dockerfile' : kind === 'compose' ? 'Docker Compose' : 'Kubernetes & OpenShift'}`, '');
   const groups = [...new Set(BUILTIN_SNIPPETS.filter((s) => s.kind === kind).map((s) => s.group))];
   for (const g of groups) {
     snip.push(`### ${g}`, '');

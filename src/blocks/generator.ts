@@ -4,6 +4,11 @@ import YAML, { isScalar, Scalar } from 'yaml';
 import { SPEC_BY_TYPE } from './defs';
 import { readValues } from './register';
 import { Ctx } from './types';
+import { CUSTOM_BLOCK } from '../custom-blocks/model';
+import { cleanOutput, expandCustomState } from '../custom-blocks/recipe';
+import { customBlockAccess, customValidation } from '../custom-blocks/runtime';
+import { generateDockerfile } from '../dockerfile';
+import type { FileKind } from '../project';
 
 export interface GenWarning {
   blockId: string;
@@ -14,6 +19,7 @@ export interface GenResult {
   yaml: string;
   docs: number;
   warnings: GenWarning[];
+  blocked?: boolean;
 }
 
 /** Remove undefined, empty objects and empty arrays (keeps null on purpose). */
@@ -39,13 +45,42 @@ function prune(v: any): any {
 const KEEP_EMPTY = new Set(['emptyDir', 'imageChange']);
 
 export interface GenOptions {
+  fileKind?: FileKind;
   /** Docker Compose resolves ${X}, ${X:-default}, ${X:?msg} itself: keep unknown ones literally, no warning. */
   passThroughUnknownVars?: boolean;
+  /** Internal Helm export: placeholder scalars are validated after rendering. */
+  templateMode?: boolean;
+  validateDocument?: (document: any, rootId: string) => string[];
 }
 
 export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {}, opts: GenOptions = {}): GenResult {
+  if (opts.fileKind === 'dockerfile') return generateDockerfile(ws, vars);
+  const custom = ws.getAllBlocks(false).filter((block) => block.type === CUSTOM_BLOCK);
+  if (custom.length) {
+    const failed = (message: string): GenResult => {
+      const warnings = custom.map((block) => ({ blockId: block.id, msg: message }));
+      custom.forEach((block) => setWarning(block, message));
+      return { yaml: '', docs: 0, warnings, blocked: true };
+    };
+    if (!customBlockAccess()) return failed('Eigene Blocktypen sind nur für angemeldete Nutzer verfügbar.');
+    const validator = customValidation();
+    if (!validator) return failed('Die Prüfung eigener Blocktypen wird geladen. Bitte kurz warten.');
+    const expandedWorkspace = new Blockly.Workspace();
+    try {
+      Blockly.Events.disable();
+      const expanded = expandCustomState(Blockly.serialization.workspaces.save(ws), vars, !!opts.templateMode);
+      Blockly.serialization.workspaces.load(expanded.state, expandedWorkspace);
+      const result = generate(expandedWorkspace, vars, { ...opts, validateDocument: opts.templateMode ? undefined : (doc, rootId) => expanded.affectedRoots.has(rootId) ? validator.validateDocument(cleanOutput(doc)).map((issue) => `${issue.path ?? '/'}: ${issue.message}`) : [] });
+      const warnings = result.warnings.map((warning) => ({ ...warning, blockId: expanded.owners.get(warning.blockId) ?? expanded.affectedRoots.get(warning.blockId) ?? warning.blockId }));
+      for (const block of ws.getAllBlocks(false)) setWarning(block, warnings.filter((warning) => warning.blockId === block.id).map((warning) => warning.msg).join('\n') || null);
+      return { ...result, warnings, blocked: result.blocked || result.warnings.some((warning) => expanded.owners.has(warning.blockId) && !(opts.templateMode && /BYOBHELMVAR\d+TOKEN/.test(warning.msg))) };
+    } catch (error) { return failed(error instanceof Error ? error.message : 'Der eigene Block konnte nicht geprüft werden.'); }
+    finally { Blockly.Events.enable(); expandedWorkspace.dispose(); }
+  }
   const warnings: GenWarning[] = [];
   const out: any[] = [];
+  const sources: string[] = [];
+  let blocked = false;
   const touched = new Set<string>();
 
   const runChain = (first: Blockly.Block | null, ctx: Ctx) => {
@@ -86,6 +121,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
     const spec = SPEC_BY_TYPE[top.type];
     if (spec?.shape === 'hat' && top.isEnabled()) {
       runBlock(top, { scopes: new Set(), out, doc: null, target: null, warn: () => {} });
+      while (sources.length < out.length) sources.push(top.id);
     }
   }
   // Loose blocks that are not attached to a start block: clear their warning, mark lightly.
@@ -95,6 +131,10 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
 
   // a Template start block collects every other document of the file as its objects
   let docs = out.map(prune);
+  if (opts.validateDocument) for (let index = 0; index < docs.length; index++) {
+    const errors = opts.validateDocument(docs[index], sources[index]);
+    if (errors.length) { blocked = true; errors.forEach((msg) => warnings.push({ blockId: sources[index], msg })); }
+  }
   const tplIdx = docs.findIndex((d) => d && d.__template);
   if (tplIdx >= 0) {
     const tpl = docs[tplIdx];
@@ -108,7 +148,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
   const yaml = docs
     .map((d) => YAML.stringify(d, { version: '1.1', lineWidth: 0, nullStr: '', indentSeq: true, aliasDuplicateObjects: false }))
     .join('---\n');
-  return { yaml, docs: docs.length, warnings };
+  return { yaml, docs: docs.length, warnings, ...(blocked ? { blocked: true } : {}) };
 }
 
 const OCTAL_KEYS = new Set(['defaultMode', 'mode']);

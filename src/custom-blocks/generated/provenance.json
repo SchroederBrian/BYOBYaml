@@ -1,0 +1,17 @@
+{
+  "kubernetesVersion": "v1.37.2",
+  "composeCommit": "3a4a6995e4a971f6173dff9130cb3e38e6738651",
+  "generatedAt": "2026-11-05T17:26:22.534Z",
+  "sources": {
+    "compose": {
+      "url": "https://raw.githubusercontent.com/compose-spec/compose-spec/3a4a6995e4a971f6173dff9130cb3e38e6738651/schema/compose-spec.json",
+      "sha256": "d549057ebc2925f39f62799eab0db7b9e2c18b35b6c00595199116da3ed10e64"
+    },
+    "kubernetes": {
+      "url": "https://raw.githubusercontent.com/kubernetes/kubernetes/v1.37.2/api/openapi-spec/swagger.json",
+      "sha256": "465276aedf437726de5a6ed23a41b86d78bb0d347edf251a755ae26a93cdd8a6"
+    }
+  },
+  "strictObjects": true,
+  "ajvVersion": "8.20.0"
+}

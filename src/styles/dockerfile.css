@@ -1,0 +1,4 @@
+.kind-dockerfile { color: #77b5ed; background: #213747; }
+.dockerfile-notice { padding: 9px 12px; border-bottom: 1px solid var(--line); color: var(--text2); font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.dockerfile-notice code { display: block; margin: 6px 0; color: var(--text); user-select: all; font: 11px/1.5 var(--mono); }
+.dockerfile-code .dockerfile-line { display: contents; }

@@ -13,9 +13,28 @@ Mit Variablen erzeugst du aus **denselben Blöcken** das YAML für dev, test und
 ![Tab Variablen mit Umgebungen dev und prod](/img/screens/variablen.png)
 
 - **Umgebungen** (oben): Ein Klick auf einen Chip macht die Umgebung aktiv, ✕ entfernt sie. Im Feld *neue Umgebung* den Namen eintippen und <kbd>Enter</kbd> drücken.
-- **Variablen** (Tabelle): Pro Zeile ein Name und je ein Wert pro Umgebung. Die aktive Umgebung ist blau hervorgehoben.
+- **Für alle Dateien**: Globale Variablen, die in jeder Datei des Projekts verfügbar sind.
+- **Nur diese Datei**: Lokale Variablen für die im Explorer ausgewählte Datei. Der Dateiname über der Tabelle zeigt, welche Datei du bearbeitest.
+- In beiden Tabellen steht pro Zeile ein Name und je ein Wert pro Umgebung. Die aktive Umgebung ist blau hervorgehoben.
 - **⧉** kopiert `${NAME}` in die Zwischenablage, damit du es direkt in ein Blockfeld einfügen kannst.
-- **+ Variable** legt eine neue Zeile an.
+- **+ Variable** legt im jeweiligen Bereich eine neue Zeile an.
+
+## Gültigkeitsbereich wählen
+
+Gemeinsame Werte wie `REGISTRY` gehören unter **Für alle Dateien**. Werte, die nur ein Deployment oder eine Compose-Datei braucht, legst du unter **Nur diese Datei** an.
+
+Ein Name darf in beiden Bereichen vorkommen. Die lokale Variable hat dann in ihrer Datei Vorrang:
+
+| Definition | dev | prod |
+| --- | --- | --- |
+| `APP` für alle Dateien | `shop-dev` | `shop` |
+| `APP` nur in `worker.yaml` | `worker-dev` | `worker` |
+
+`${APP}` ergibt in `worker.yaml` also `worker-dev` bzw. `worker`. In anderen Dateien ergibt es `shop-dev` bzw. `shop`. Beim Wechsel im Explorer zeigt die lokale Tabelle die Variablen der neu ausgewählten Datei.
+
+Auch ein leerer lokaler Wert überschreibt den globalen Wert. Um wieder den globalen Wert zu verwenden, löschst du die lokale Zeile über das Papierkorb-Symbol.
+
+Beim Duplizieren einer Datei werden ihre lokalen Variablen unabhängig mitkopiert. Beide Bereiche bleiben beim Speichern und in exportierten `.byob`-Projekten erhalten. Entfernst du eine Umgebung, werden ihre Werte auch aus den lokalen Variablen aller Dateien entfernt.
 
 ## In Blöcken benutzen
 
@@ -44,6 +63,6 @@ Oben rechts **Umgebung** auf `prod` stellen. Die Blöcke bleiben gleich, das YAM
 - **Großbuchstaben** für Variablennamen (`NAMESPACE`, `TAG`), damit sie in Feldern sofort auffallen.
 - Werte, die überall gleich sind, als **feste Werte** stehen lassen. Variablen nur für echte Unterschiede.
 - **Teilwerte** gehen auch: `registry.example.com/shop:${TAG}` oder `postgres://app:${DB_PASSWORD}@db/app`.
-- Vor dem Export die **Umgebung prüfen**: *Alle Dateien in Ordner…* nimmt die aktive Umgebung, das Menü zeigt sie an.
+- Vor dem Export die **Umgebung prüfen**: *Alle Dateien in Ordner…* nimmt die aktive Umgebung und löst für jede Datei deren eigene lokalen Variablen auf. Das Menü zeigt die Umgebung an.
 
 Ein Komplettbeispiel mit vier Umgebungen steht in der Anleitung [dev und prod](../anleitungen/dev-prod.md).

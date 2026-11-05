@@ -3,9 +3,11 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 're
 import { Icon, IconName } from '../components/Icons';
 import { Modal } from '../components/Dialogs';
 import YamlView from '../components/YamlView';
+import DockerfileView from '../components/DockerfileView';
+import { fileKindLabel, type FileKind } from '../project';
 import BlockPreview from './BlockPreview';
 import { ListQuery, ListResult, market, MARKET_HOST, MarketError, SAME_ORIGIN } from './api';
-import { isFile, isProject, isSnippet, projectVars, snippetState, snippetWhere, snippetYaml, yamlOf } from './preview';
+import { fileVars, isFile, isProject, isSnippet, projectVars, snippetState, snippetWhere, snippetYaml, yamlOf } from './preview';
 import { ItemKind, ItemTarget, KIND_LABEL, KIND_PLURAL, MarketItem, MarketItemFull, SortKey, TARGET_LABEL } from './shared';
 import { refreshMe, setMe, useMe } from './useMe';
 
@@ -17,7 +19,7 @@ interface Props {
   /** open this item right away (deep link) */
   initialId?: string;
   /** kind of the file open in the editor – decides if a snippet can be inserted */
-  activeKind?: 'compose' | 'k8s';
+  activeKind?: FileKind;
   onUse: (item: MarketItemFull, how: UseAction) => Promise<string | void>;
   onPublish: (edit?: MarketItemFull) => void;
   flash: (msg: string) => void;
@@ -170,8 +172,8 @@ export default function MarketDialog({ onClose, initialId, activeKind, onUse, on
             <NavBtn key={k || 'all'} small on={kind === k} icon={k ? KIND_ICON[k] : 'grid'} label={k ? KIND_PLURAL[k] : 'Alles'} onClick={() => (setKind(k), setOpenId(null))} />
           ))}
           <div className="mk-nav-label">Für</div>
-          {(['', 'compose', 'k8s'] as const).map((t) => (
-            <NavBtn key={t || 'all'} small on={target === t} icon={t === 'compose' ? 'whale' : t === 'k8s' ? 'helm' : 'grid'} label={t ? TARGET_LABEL[t] : 'Alle Editoren'} onClick={() => (setTarget(t), setOpenId(null))} />
+          {(['', 'compose', 'k8s', 'dockerfile'] as const).map((t) => (
+            <NavBtn key={t || 'all'} small on={target === t} icon={t === 'dockerfile' ? 'box' : t === 'compose' ? 'whale' : t === 'k8s' ? 'helm' : 'grid'} label={t ? TARGET_LABEL[t] : 'Alle Editoren'} onClick={() => (setTarget(t), setOpenId(null))} />
           ))}
           <div className="mk-nav-foot">
             <Icon name="lock" size={12} /> Alles hier ist kostenlos und frei nutzbar (CC0).
@@ -434,8 +436,8 @@ function ItemCard({ item, onOpen, onTag }: { item: MarketItem; onOpen: () => voi
 
 export function TargetPill({ target }: { target: ItemTarget }) {
   if (target === 'any') return <span className="kind-pill">{TARGET_LABEL.any}</span>;
-  if (target === 'mixed') return <span className="kind-pill">Compose + K8s</span>;
-  return <span className={`kind-pill kind-${target}`}>{target === 'compose' ? 'Docker Compose' : 'Kubernetes'}</span>;
+  if (target === 'mixed') return <span className="kind-pill">Mehrere Editoren</span>;
+  return <span className={`kind-pill kind-${target}`}>{TARGET_LABEL[target]}</span>;
 }
 
 // ---------------------------------------------------------------------------------------------- detail
@@ -455,7 +457,7 @@ function ItemDetail({
 }: {
   id: string;
   reloadKey: number;
-  activeKind?: 'compose' | 'k8s';
+  activeKind?: FileKind;
   onBack: () => void;
   onUse: (item: MarketItemFull, how: UseAction) => Promise<string | void>;
   onEdit: (item: MarketItemFull) => void;
@@ -498,7 +500,7 @@ function ItemDetail({
     if (tab !== 'yaml' || !d) return '';
     if (isSnippet(d)) return snippetYaml(d);
     if (!file) return '';
-    return yamlOf(file.state, file.kind, isProject(d) ? projectVars(d) : {}).yaml;
+    return yamlOf(file.state, file.kind, isProject(d) ? projectVars(d, file) : fileVars(file)).yaml;
   }, [tab, d, file]);
 
   if (error)
@@ -589,7 +591,7 @@ function ItemDetail({
   const snippetMismatch = isSnippet(d) && activeKind && item.target !== 'any' && item.target !== 'mixed' && item.target !== activeKind;
   const primary: { how: UseAction; label: string; icon: IconName; disabled?: string }[] = isSnippet(d)
     ? [
-        { how: 'insert', label: 'In Arbeitsfläche einfügen', icon: 'plus', disabled: snippetMismatch ? `Passt nicht zur geöffneten Datei (${activeKind === 'compose' ? 'Compose' : 'Kubernetes'}). Öffne eine ${item.target === 'compose' ? 'Compose' : 'Kubernetes'}-Datei.` : undefined },
+        { how: 'insert', label: 'In Arbeitsfläche einfügen', icon: 'plus', disabled: snippetMismatch ? `Passt nicht zur geöffneten Datei (${fileKindLabel(activeKind)}). Öffne eine Datei für ${TARGET_LABEL[item.target]}.` : undefined },
         { how: 'snippet', label: 'Zu Meine Vorlagen', icon: 'layers' },
       ]
     : isProject(d)
@@ -733,7 +735,7 @@ function ItemDetail({
           <div className="mk-preview-note">Diese Kombination beginnt nicht mit einem Startblock. YAML entsteht, sobald du sie in einer Datei unter den passenden Block legst.</div>
         ) : (
           <div className="mk-yaml">
-            <YamlView yaml={yaml || ''} />
+            {file?.kind === 'dockerfile' || isSnippet(d) && item.target === 'dockerfile' ? <DockerfileView source={yaml || ''} /> : <YamlView yaml={yaml || ''} />}
           </div>
         )}
       </div>

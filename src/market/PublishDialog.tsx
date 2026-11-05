@@ -3,15 +3,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { Icon } from '../components/Icons';
 import { Modal } from '../components/Dialogs';
 import { market, MARKET_HOST, SAME_ORIGIN } from './api';
-import { checkData, findSecrets, ItemData, ItemKind, LIMITS, MarketItem, MarketItemFull, parseTags, ProjectData } from './shared';
+import { checkData, findSecrets, ItemData, ItemKind, LIMITS, MarketItem, MarketItemFull, parseTags, ProjectData, FileData, stripVariableValues } from './shared';
 import { LoginDialog, plural, TargetPill } from './MarketDialog';
 import { useMe } from './useMe';
 import type { Snippet } from '../project';
+import { fileKindLabel } from '../project';
 
 export interface PublishSources {
   /** block chain from the context menu ("Ab hier im Marktplatz teilen") */
   preset?: { block: any };
-  file?: { name: string; kind: 'compose' | 'k8s'; state: any };
+  file?: FileData;
   project?: ProjectData;
   snippets: Snippet[];
 }
@@ -58,11 +59,10 @@ export default function PublishDialog({ sources, edit, onClose, onDone, flash }:
   const payload = useMemo((): { kind: ItemKind; data: ItemData; name: string } | null => {
     if (source === 'keep' && edit) return { kind: edit.kind, data: edit.data, name: edit.title };
     if (source === 'preset' && sources.preset) return { kind: 'snippet', data: { block: sources.preset.block }, name: '' };
-    if (source === 'file' && sources.file) return { kind: 'file', data: { name: sources.file.name, kind: sources.file.kind, state: sources.file.state }, name: stripExt(sources.file.name) };
+    if (source === 'file' && sources.file) return { kind: 'file', data: stripVars ? stripVariableValues(sources.file) : sources.file, name: stripExt(sources.file.name) };
     if (source === 'project' && sources.project) {
       const p = sources.project;
-      const variables = stripVars ? p.variables.map((v) => ({ name: v.name, values: Object.fromEntries(p.envs.map((e) => [e, ''])) })) : p.variables;
-      return { kind: 'project', data: { ...p, variables }, name: p.title };
+      return { kind: 'project', data: stripVars ? stripVariableValues(p) : p, name: p.title };
     }
     if (source === 'snippet') {
       const s = sources.snippets.find((x) => x.id === snippetId);
@@ -182,7 +182,7 @@ export default function PublishDialog({ sources, edit, onClose, onDone, flash }:
               <div className="mk-sources">
                 {edit && <SourceCard id="keep" icon="check" title="Inhalt beibehalten" sub={`Nur Titel, Beschreibung und Tags ändern (v${edit.version})`} />}
                 {sources.preset && <SourceCard id="preset" icon="layers" title="Ausgewählte Block-Kombination" sub={`${plural(blocksIn(sources.preset.block), 'Block', 'Blöcke')} ab dem angeklickten Block`} />}
-                {sources.file && (!edit || edit.kind === 'file') && <SourceCard id="file" icon="file" title={edit ? 'Durch aktuelle Datei ersetzen' : 'Aktuelle Datei'} sub={`${sources.file.name} · ${sources.file.kind === 'compose' ? 'Docker Compose' : 'Kubernetes'}`} />}
+                {sources.file && (!edit || edit.kind === 'file') && <SourceCard id="file" icon="file" title={edit ? 'Durch aktuelle Datei ersetzen' : 'Aktuelle Datei'} sub={`${sources.file.name} · ${fileKindLabel(sources.file.kind)}`} />}
                 {sources.project && (!edit || edit.kind === 'project') && <SourceCard id="project" icon="folder" title={edit ? 'Durch aktuelles Projekt ersetzen' : 'Ganzes Projekt'} sub={`${sources.project.title} · ${sources.project.files.length} Dateien`} />}
                 {(!edit || edit.kind === 'snippet') && <SourceCard id="snippet" icon="star" title={edit ? 'Durch eine meiner Vorlagen ersetzen' : 'Eine meiner Vorlagen'} sub={sources.snippets.length ? `${sources.snippets.length} eigene Vorlagen` : 'Noch keine eigenen Vorlagen'} disabled={!sources.snippets.length} />}
               </div>
@@ -195,11 +195,11 @@ export default function PublishDialog({ sources, edit, onClose, onDone, flash }:
                   ))}
                 </select>
               )}
-              {source === 'project' && (
+              {(source === 'project' || source === 'file') && (
                 <label className="mk-check">
                   <input type="checkbox" checked={stripVars} onChange={(e) => setStripVars(e.target.checked)} />
                   <span>
-                    Variablenwerte nicht mitschicken <small>Nur die Namen ({sources.project?.variables.length ?? 0}) werden geteilt – sicher für Passwörter und Hosts.</small>
+                    Variablenwerte nicht mitschicken <small>Nur die Variablennamen werden geteilt – sicher für Passwörter und Hosts.</small>
                   </span>
                 </label>
               )}
