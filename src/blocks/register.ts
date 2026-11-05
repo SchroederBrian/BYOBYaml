@@ -57,6 +57,7 @@ export function registerBlocks() {
   Blockly.common.defineBlocksWithJsonArray(ALL_BLOCKS.map(blockJson));
   if (typeof document !== 'undefined') {
     Blockly.registry.register(Blockly.registry.Type.TOOLBOX_ITEM, Blockly.ToolboxCategory.registrationName, DotCategory, true);
+    Blockly.registry.register(Blockly.registry.Type.FLYOUTS_VERTICAL_TOOLBOX, FIXED_FLYOUT, FixedScaleFlyout, true);
     Blockly.ContextMenuRegistry.registry.register({
       id: 'byob_save_snippet',
       scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK,
@@ -201,6 +202,15 @@ export function registerDynamicCategories(ws: Blockly.WorkspaceSvg) {
     if (!list.length) return [{ kind: 'label', text: 'Noch leer. Rechtsklick auf einen Block → „Ab hier als Vorlage speichern…“' }];
     return list.flatMap((s: any) => [{ kind: 'label', text: s.name }, { kind: 'block', ...s.block }]);
   });
+}
+
+// Palette (flyout) keeps its normal size: Blockly would scale it with the canvas zoom.
+export const FIXED_FLYOUT = 'byobFixedFlyout';
+export const START_SCALE = () => (typeof window !== 'undefined' && window.matchMedia('(max-width: 820px)').matches ? 0.7 : 0.9);
+class FixedScaleFlyout extends Blockly.VerticalFlyout {
+  override getFlyoutScale(): number {
+    return START_SCALE();
+  }
 }
 
 // Compact category row: small colour dot + label.

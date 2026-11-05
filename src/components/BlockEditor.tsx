@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import * as Blockly from 'blockly/core';
 import * as De from 'blockly/msg/de';
-import { buildTheme, buildToolbox, editorHooks, registerBlocks, registerDynamicCategories } from '../blocks/register';
+import { buildTheme, buildToolbox, editorHooks, FIXED_FLYOUT, registerBlocks, registerDynamicCategories, START_SCALE } from '../blocks/register';
 import { generate, GenResult } from '../blocks/generator';
 import { FileKind, Snippet } from '../project';
 
@@ -55,7 +55,8 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       trashcan: true,
       sounds: false,
       grid: { spacing: 24, length: 1, colour: '#232833', snap: true },
-      zoom: { controls: true, wheel: true, startScale: window.matchMedia('(max-width: 820px)').matches ? 0.7 : 0.9, maxScale: 2, minScale: 0.35, scaleSpeed: 1.12 },
+      zoom: { controls: true, wheel: true, startScale: START_SCALE(), maxScale: 2, minScale: 0.35, scaleSpeed: 1.12 },
+      plugins: { flyoutsVerticalToolbox: FIXED_FLYOUT },
       move: { scrollbars: true, drag: true, wheel: false },
     });
     ws.current = w;
