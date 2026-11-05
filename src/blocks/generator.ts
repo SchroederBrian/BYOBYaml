@@ -38,7 +38,12 @@ function prune(v: any): any {
 // Keys where an empty object is meaningful.
 const KEEP_EMPTY = new Set(['emptyDir', 'imageChange']);
 
-export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {}): GenResult {
+export interface GenOptions {
+  /** Docker Compose resolves ${X}, ${X:-default}, ${X:?msg} itself: keep unknown ones literally, no warning. */
+  passThroughUnknownVars?: boolean;
+}
+
+export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {}, opts: GenOptions = {}): GenResult {
   const warnings: GenWarning[] = [];
   const out: any[] = [];
   const touched = new Set<string>();
@@ -61,7 +66,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
       blockWarnings.push(`Dieser Block gehört ${spec.where ?? 'woanders hin'}.`);
     } else {
       try {
-        spec.gen(readValues(b, spec, vars, blockWarnings), ctx, (scopes, patch) => {
+        spec.gen(readValues(b, spec, vars, blockWarnings, !!opts.passThroughUnknownVars), ctx, (scopes, patch) => {
           const child: Ctx = { ...ctx, ...patch, scopes: new Set([...ctx.scopes, ...scopes]) };
           const first = spec.shape === 'hat' ? b.getNextBlock() : b.getInputTargetBlock('BODY');
           runChain(first, child);

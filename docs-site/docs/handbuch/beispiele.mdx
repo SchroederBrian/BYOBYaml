@@ -39,7 +39,7 @@ Jedes Beispiel zeigt die **Blöcke**, die **Schritte** und das **exakte YAML**, 
 **Blöcke:**
 
 <div className="blk-tree">
-<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt website</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt website Version </span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service web Image nginx:1.27-alpine</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host 8080 → Container 80 tcp</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Volume ./html → /usr/share/nginx/html nur lesen ☑</span></div>
@@ -79,19 +79,19 @@ Ports schreibt BYOBYaml immer in Anführungszeichen (`"8080:80"`). Sonst kann YA
 **Blöcke:**
 
 <div className="blk-tree">
-<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt shop</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt shop Version </span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service db Image postgres:16-alpine</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_USER = app</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_PASSWORD = change-me</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_DB = app</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Volume pgdata → /var/lib/postgresql/data nur lesen ☐</span></div>
-<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Healthcheck pg_isready -U app alle 10s Timeout 5s Versuche 5</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Healthcheck undefined pg_isready -U app alle 10s Timeout 5s Versuche 5 Startphase </span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service app Image </span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Build Ordner . Dockerfile Dockerfile</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host 3000 → Container 3000 tcp</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable DATABASE_URL = postgres://app:change-me@db:5432/app</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>wartet auf db bis gesund</span></div>
-<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Volume pgdata Treiber Standard</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Volume pgdata Treiber Standard extern ☐ echter Name </span></div>
 </div>
 
 **Ergebnis:**
@@ -140,7 +140,7 @@ volumes:
 **Blöcke:**
 
 <div className="blk-tree">
-<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt </span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt Version </span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service api Image registry.example.com/api:$&#123;TAG&#125;</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host $&#123;PORT&#125; → Container 8080 tcp</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable RELEASE = api-$&#123;TAG&#125;</span></div>

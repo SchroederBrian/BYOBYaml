@@ -28,6 +28,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const varsRef = useRef(vars);
+  const kindRef = useRef<FileKind>('compose');
   varsRef.current = vars;
   const snippetsRef = useRef(userSnippets);
   snippetsRef.current = userSnippets;
@@ -37,7 +38,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   // never report (and thereby save) a workspace that has not been loaded with a file yet
   const loaded = useRef(false);
   const emit = () => {
-    if (ws.current && loaded.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current));
+    if (ws.current && loaded.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current, { passThroughUnknownVars: kindRef.current === 'compose' }));
   };
 
   useEffect(() => {
@@ -90,6 +91,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
 
   useImperativeHandle(ref, () => ({
     load(state, kind, layout) {
+      kindRef.current = kind;
       const w = ws.current;
       if (!w) return;
       loading.current = true;

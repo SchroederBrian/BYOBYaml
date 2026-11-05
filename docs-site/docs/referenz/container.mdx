@@ -24,7 +24,7 @@ Einstellungen eines Containers. Gehören **in** einen `Container`- oder `Init-Co
 | [Argumente …](#c-args) | Stapel | in einen "Container"-Block |
 | [Image laden …](#c-pull) | Stapel | in einen "Container"-Block |
 | [Arbeitsordner …](#c-workdir) | Stapel | in einen "Container"-Block |
-| [… prüfen per … Pfad … Port … nach … s alle … s](#c-probe) | Stapel | in einen "Container"-Block |
+| [… prüfen per … Pfad … Port … nach … s alle … s Timeout … s Fehlversuche …](#c-probe) | Stapel | in einen "Container"-Block |
 | [sicher: keine Rechte-Ausweitung … Root-FS nur lesen … alle Capabilities weg …](#c-security) | Stapel | in einen "Container"-Block |
 
 ## Image … {#c-image}
@@ -453,9 +453,9 @@ spec:
 
 </details>
 
-## … prüfen per … Pfad … Port … nach … s alle … s {#c-probe}
+## … prüfen per … Pfad … Port … nach … s alle … s Timeout … s Fehlversuche … {#c-probe}
 
-<div className="block-sig" style={{ '--c': '#2b8fa8' }}>[1] prüfen per [2] Pfad [3] Port [4] nach [5] s alle [6] s</div>
+<div className="block-sig" style={{ '--c': '#2b8fa8' }}>[1] prüfen per [2] Pfad [3] Port [4] nach [5] s alle [6] s Timeout [7] s Fehlversuche [8]</div>
 
 **Stapelblock** · Typ-ID `c_probe` · gehört in einen "Container"-Block
 
@@ -467,6 +467,8 @@ spec:
 | 4 | `PORT` | Text | `8080` |  |
 | 5 | `DELAY` | Zahl | `5` |  |
 | 6 | `PERIOD` | Zahl | `10` |  |
+| 7 | `TIMEOUT` | Text | *(leer)* |  |
+| 8 | `FAIL` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>

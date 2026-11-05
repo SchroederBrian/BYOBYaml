@@ -102,6 +102,7 @@ function stripClusterFields(doc: any, notes: Set<string>) {
 const API: Record<string, string> = {
   Namespace: 'v1',
   Deployment: 'apps/v1',
+  DeploymentConfig: 'apps.openshift.io/v1',
   StatefulSet: 'apps/v1',
   DaemonSet: 'apps/v1',
   Job: 'batch/v1',
@@ -190,7 +191,7 @@ function importContainer(c: any, notes: Set<string>): { fields: Record<string, a
     const http = p?.httpGet;
     const tcp = p?.tcpSocket;
     const ok =
-      onlyKeys(p, ['httpGet', 'tcpSocket', 'initialDelaySeconds', 'periodSeconds']) &&
+      onlyKeys(p, ['httpGet', 'tcpSocket', 'initialDelaySeconds', 'periodSeconds', 'timeoutSeconds', 'failureThreshold']) &&
       typeof p.initialDelaySeconds === 'number' &&
       typeof p.periodSeconds === 'number' &&
       ((http && !tcp && onlyKeys(http, ['path', 'port']) && http.port !== undefined) || (tcp && !http && onlyKeys(tcp, ['port'])));
@@ -203,6 +204,8 @@ function importContainer(c: any, notes: Set<string>): { fields: Record<string, a
           PORT: str((http ?? tcp).port),
           DELAY: p.initialDelaySeconds,
           PERIOD: p.periodSeconds,
+          TIMEOUT: str(p.timeoutSeconds),
+          FAIL: str(p.failureThreshold),
         }),
       );
     else tail.push(field(kind, p));
@@ -325,6 +328,41 @@ function importK8sDoc(doc: any, notes: Set<string>): any {
           body.push(b('sts_volume_claim', { NAME: str(v.metadata.name), SIZE: str(size) }));
         else body.push(listItem('spec.volumeClaimTemplates', v));
       }
+    }
+    const tpl = take(s, 'template') ?? {};
+    importTemplateMeta(take(tpl, 'metadata') ?? {}, name, 'spec.template.metadata', body, tail);
+    importPod(take(tpl, 'spec'), 'spec.template.spec', body, tail, notes);
+    tail.push(...leftovers(tpl, 'spec.template'), ...leftovers(s, 'spec'));
+  } else if (kind === 'DeploymentConfig') {
+    const s = spec ?? {};
+    hat = b('k8s_deploymentconfig', { NAME: name, REPLICAS: take(s, 'replicas') ?? 1 });
+    const sel = take(s, 'selector');
+    if (!eq(sel, { app: name })) tail.push(field('spec.selector', sel ?? null));
+    const strat = take(s, 'strategy');
+    if (strat !== undefined) {
+      const rp = strat?.rollingParams;
+      const cp = strat?.recreateParams;
+      const okRolling = strat?.type === 'Rolling' && onlyKeys(strat, ['type', 'rollingParams']) && (rp === undefined || onlyKeys(rp, ['updatePeriodSeconds', 'intervalSeconds', 'timeoutSeconds', 'maxUnavailable', 'maxSurge']));
+      const okRecreate = strat?.type === 'Recreate' && onlyKeys(strat, ['type', 'recreateParams']) && (cp === undefined || onlyKeys(cp, ['timeoutSeconds']));
+      if (okRolling)
+        body.push(b('dc_strategy', { S: 'Rolling', INTERVAL: str(rp?.intervalSeconds), UPDATE: str(rp?.updatePeriodSeconds), TIMEOUT: str(rp?.timeoutSeconds), UNAVAIL: str(rp?.maxUnavailable), SURGE: str(rp?.maxSurge) }));
+      else if (okRecreate) body.push(b('dc_strategy', { S: 'Recreate', INTERVAL: '', UPDATE: '', TIMEOUT: str(cp?.timeoutSeconds), UNAVAIL: '', SURGE: '' }));
+      else tail.push(field('spec.strategy', strat));
+    }
+    for (const t of take(s, 'triggers') ?? []) {
+      const ip = t?.imageChangeParams;
+      if (eq(t, { type: 'ConfigChange' })) body.push(b('dc_trigger', { T: 'ConfigChange', IST: '', CONT: '' }));
+      else if (
+        t?.type === 'ImageChange' &&
+        onlyKeys(t, ['type', 'imageChangeParams']) &&
+        onlyKeys(ip, ['automatic', 'containerNames', 'from']) &&
+        ip.automatic === true &&
+        onlyKeys(ip.from, ['kind', 'name']) &&
+        ip.from.kind === 'ImageStreamTag' &&
+        (ip.containerNames === undefined || (Array.isArray(ip.containerNames) && ip.containerNames.length === 1))
+      )
+        body.push(b('dc_trigger', { T: 'ImageChange', IST: str(ip.from.name), CONT: str(ip.containerNames?.[0]) }));
+      else body.push(listItem('spec.triggers', t));
     }
     const tpl = take(s, 'template') ?? {};
     importTemplateMeta(take(tpl, 'metadata') ?? {}, name, 'spec.template.metadata', body, tail);
@@ -616,9 +654,13 @@ function importService(name: string, svc: any): B {
   const hc = take(s, 'healthcheck');
   if (hc !== undefined) {
     const t = hc?.test;
-    const cmd = typeof t === 'string' ? null : Array.isArray(t) && t[0] === 'CMD-SHELL' && t.length === 2 ? t[1] : null;
-    if (cmd !== null && onlyKeys(hc, ['test', 'interval', 'timeout', 'retries']) && hc.interval !== undefined && hc.timeout !== undefined && typeof hc.retries === 'number')
-      body.push(b('svc_healthcheck', { CMD: cmd, INT: str(hc.interval), TO: str(hc.timeout), RET: hc.retries }));
+    let mode: 'CMD' | 'CMD-SHELL' | null = null;
+    let cmd: string | null = null;
+    if (Array.isArray(t) && t[0] === 'CMD-SHELL' && t.length === 2) [mode, cmd] = ['CMD-SHELL', String(t[1])];
+    else if (Array.isArray(t) && t[0] === 'CMD' && t.length > 1) [mode, cmd] = ['CMD', joinArgs(t.slice(1))];
+    if (eq(hc, { disable: true })) body.push(b('svc_healthcheck_off', {}));
+    else if (mode && cmd !== null && onlyKeys(hc, ['test', 'interval', 'timeout', 'retries', 'start_period']) && (hc.retries === undefined || typeof hc.retries === 'number'))
+      body.push(b('svc_healthcheck', { MODE: mode, CMD: cmd, INT: str(hc.interval), TO: str(hc.timeout), RET: hc.retries ?? '', START: str(hc.start_period) }));
     else tail.push(field('healthcheck', hc));
   }
   for (const [k, v] of kvList(take(s, 'labels'))) body.push(b('svc_label', { K: k, V: str(v) }));
@@ -633,6 +675,20 @@ function importService(name: string, svc: any): B {
     if (typeof rep === 'number') body.push(b('svc_replicas', { N: rep }));
     tail.push(...leftovers(deploy, 'deploy'));
   }
+  const mem = s.mem_limit;
+  const cpus = s.cpus;
+  const pids = s.pids_limit;
+  if ([mem, cpus, pids].some((x) => x !== undefined) && [mem, cpus, pids].every((x) => x === undefined || typeof x === 'string' || typeof x === 'number')) {
+    for (const k of ['mem_limit', 'cpus', 'pids_limit']) delete s[k];
+    body.push(b('svc_limits', { MEM: str(mem), CPUS: str(cpus), PIDS: str(pids) }));
+  }
+  for (const key of ['cap_drop', 'cap_add']) {
+    const caps = take(s, key);
+    if (caps === undefined) continue;
+    for (const c of Array.isArray(caps) ? caps : [caps]) body.push(b('svc_cap', { MODE: key, CAP: str(c) }));
+  }
+  const secOpt = take(s, 'security_opt');
+  if (secOpt !== undefined) for (const o of Array.isArray(secOpt) ? secOpt : [secOpt]) body.push(b('svc_security_opt', { OPT: str(o) }));
   for (const k of SVC_OPTIONS) {
     const v = take(s, k);
     if (v === undefined) continue;
@@ -679,17 +735,19 @@ function importComposeDoc(doc: any) {
   const d = { ...doc };
   const body: B[] = [];
   const tail: B[] = [];
-  const hat = b('compose_file', { NAME: str(take(d, 'name')) });
+  const ver = d.version;
+  const hat = b('compose_file', { NAME: str(take(d, 'name')), VERSION: typeof ver === 'string' || typeof ver === 'number' ? (delete d.version, String(ver)) : '' });
   for (const [n, svc] of Object.entries(take(d, 'services') ?? {})) body.push(importService(n, svc));
   for (const [n, v] of Object.entries(take(d, 'volumes') ?? {})) {
-    if (v === null || (isPlain(v) && !Object.keys(v).length)) body.push(b('compose_volume', { NAME: n, DRIVER: '__none__' }));
-    else if (onlyKeys(v, ['driver']) && ddOk('compose_volume', 'DRIVER', (v as any).driver)) body.push(b('compose_volume', { NAME: n, DRIVER: (v as any).driver }));
+    const vol = v as any;
+    if (v === null || (onlyKeys(v, ['driver', 'external', 'name']) && (vol.driver === undefined || ddOk('compose_volume', 'DRIVER', vol.driver)) && vol.external !== false && (vol.name === undefined || typeof vol.name === 'string')))
+      body.push(b('compose_volume', { NAME: n, DRIVER: vol?.driver ?? '__none__', EXTERNAL: vol?.external === true, XNAME: str(vol?.name) }));
     else tail.push(b('x_yaml', { Y: JSON.stringify({ volumes: { [n]: v } }) }));
   }
   for (const [n, v] of Object.entries(take(d, 'networks') ?? {})) {
     const net = v as any;
-    if (v === null || (onlyKeys(v, ['driver', 'external']) && (net.driver === undefined || ddOk('compose_network', 'DRIVER', net.driver)) && net.external !== false))
-      body.push(b('compose_network', { NAME: n, DRIVER: net?.driver ?? '__none__', EXTERNAL: net?.external === true }));
+    if (v === null || (onlyKeys(v, ['driver', 'external', 'internal']) && (net.driver === undefined || ddOk('compose_network', 'DRIVER', net.driver)) && net.external !== false && net.internal !== false))
+      body.push(b('compose_network', { NAME: n, DRIVER: net?.driver ?? '__none__', EXTERNAL: net?.external === true, INTERNAL: net?.internal === true }));
     else tail.push(b('x_yaml', { Y: JSON.stringify({ networks: { [n]: v } }) }));
   }
   for (const [n, v] of Object.entries(take(d, 'secrets') ?? {})) {

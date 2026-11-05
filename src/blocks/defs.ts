@@ -27,11 +27,12 @@ const compose: BlockSpec[] = [
     type: 'compose_file',
     cat: 'compose',
     shape: 'hat',
-    msg: 'Docker Compose · Projekt %1',
-    args: [T('NAME', '')],
+    msg: 'Docker Compose · Projekt %1 Version %2',
+    args: [T('NAME', ''), T('VERSION', '')],
     tip: 'Startblock für eine docker-compose.yml. Hänge Services, Volumes und Netzwerke darunter.',
     gen: (v, ctx, run) => {
       const doc: any = {};
+      if (v.VERSION) doc.version = v.VERSION;
       if (v.NAME) doc.name = v.NAME;
       doc.services = {};
       doc.volumes = undefined;
@@ -63,21 +64,26 @@ const compose: BlockSpec[] = [
     type: 'compose_volume',
     cat: 'compose',
     shape: 'stmt',
-    msg: 'Volume %1 Treiber %2',
-    args: [T('NAME', 'data'), D('DRIVER', [['Standard', ''], 'local'])],
+    msg: 'Volume %1 Treiber %2 extern %3 echter Name %4',
+    args: [T('NAME', 'data'), D('DRIVER', [['Standard', ''], 'local']), C('EXTERNAL', false), T('XNAME', '')],
     scope: ['compose'],
     where: 'unter einen "Docker Compose"-Startblock',
+    tip: 'Extern = Volume existiert schon (docker volume create). "echter Name" setzt name: für Volumes aus einem anderen Stack.',
     gen: (v, ctx) => {
       const vols = at(ctx.doc, 'volumes');
-      vols[v.NAME || 'data'] = v.DRIVER ? { driver: v.DRIVER } : null;
+      const vol: any = {};
+      if (v.DRIVER) vol.driver = v.DRIVER;
+      if (v.EXTERNAL) vol.external = true;
+      if (v.XNAME) vol.name = v.XNAME;
+      vols[v.NAME || 'data'] = Object.keys(vol).length ? vol : null;
     },
   },
   {
     type: 'compose_network',
     cat: 'compose',
     shape: 'stmt',
-    msg: 'Netzwerk %1 Treiber %2 extern %3',
-    args: [T('NAME', 'backend'), D('DRIVER', [['Standard', ''], 'bridge', 'overlay', 'host', 'macvlan', 'none']), C('EXTERNAL', false)],
+    msg: 'Netzwerk %1 Treiber %2 extern %3 intern (ohne Internet) %4',
+    args: [T('NAME', 'backend'), D('DRIVER', [['Standard', ''], 'bridge', 'overlay', 'host', 'macvlan', 'none']), C('EXTERNAL', false), C('INTERNAL', false)],
     scope: ['compose'],
     where: 'unter einen "Docker Compose"-Startblock',
     gen: (v, ctx) => {
@@ -85,6 +91,7 @@ const compose: BlockSpec[] = [
       const n: any = {};
       if (v.DRIVER) n.driver = v.DRIVER;
       if (v.EXTERNAL) n.external = true;
+      if (v.INTERNAL) n.internal = true;
       nets[v.NAME || 'net'] = Object.keys(n).length ? n : null;
     },
   },
@@ -145,10 +152,20 @@ const service: BlockSpec[] = [
   { type: 'svc_entrypoint', cat: 'service', shape: 'stmt', msg: 'Entrypoint %1', args: [T('CMD', '/docker-entrypoint.sh')], scope: S, where: SW, gen: (v, c) => { c.target.entrypoint = splitArgs(v.CMD); } },
   { type: 'svc_network', cat: 'service', shape: 'stmt', msg: 'im Netzwerk %1', args: [T('NAME', 'backend')], scope: S, where: SW, gen: (v, c) => { list(c.target, 'networks').push(v.NAME); } },
   {
-    type: 'svc_healthcheck', cat: 'service', shape: 'stmt', msg: 'Healthcheck %1 alle %2 Timeout %3 Versuche %4',
-    args: [T('CMD', 'curl -f http://localhost/ || exit 1'), T('INT', '30s'), T('TO', '5s'), N('RET', 3, 0)], scope: S, where: SW,
-    gen: (v, c) => { c.target.healthcheck = { test: ['CMD-SHELL', v.CMD], interval: v.INT, timeout: v.TO, retries: v.RET }; },
+    type: 'svc_healthcheck', cat: 'service', shape: 'stmt', msg: 'Healthcheck %1 %2 alle %3 Timeout %4 Versuche %5 Startphase %6',
+    args: [D('MODE', [['Shell (CMD-SHELL)', 'CMD-SHELL'], ['Befehl (CMD)', 'CMD']]), T('CMD', 'curl -f http://localhost/ || exit 1'), T('INT', '30s'), T('TO', '5s'), N('RET', 3, 0), T('START', '')],
+    scope: S, where: SW,
+    tip: 'Shell: Befehl läuft in /bin/sh. Befehl (CMD): direkt ausgeführt, Argumente mit Leerzeichen in Anführungszeichen setzen.',
+    gen: (v, c) => {
+      const hc: any = { test: v.MODE === 'CMD' ? ['CMD', ...splitArgs(v.CMD)] : ['CMD-SHELL', v.CMD] };
+      if (v.INT) hc.interval = v.INT;
+      if (v.TO) hc.timeout = v.TO;
+      if (v.RET !== '') hc.retries = v.RET;
+      if (v.START) hc.start_period = v.START;
+      c.target.healthcheck = hc;
+    },
   },
+  { type: 'svc_healthcheck_off', cat: 'service', shape: 'stmt', msg: 'Healthcheck ausschalten', args: [], scope: S, where: SW, tip: 'Schaltet einen im Image definierten Healthcheck ab (disable: true).', gen: (_v, c) => { c.target.healthcheck = { disable: true }; } },
   { type: 'svc_label', cat: 'service', shape: 'stmt', msg: 'Label %1 = %2', args: [T('K', 'com.example.team'), T('V', 'platform')], scope: S, where: SW, gen: (v, c) => { at(c.target, 'labels')[v.K] = v.V; } },
   {
     type: 'svc_resources', cat: 'service', shape: 'stmt', msg: 'Limit CPU %1 RAM %2', args: [T('CPU', '0.5'), T('MEM', '512M')], scope: S, where: SW,
@@ -172,6 +189,20 @@ const service: BlockSpec[] = [
     gen: (v, c) => { c.target.logging = { driver: v.DRV, options: v.DRV === 'none' ? undefined : { 'max-size': v.SIZE, 'max-file': String(v.FILES) } }; },
   },
   { type: 'svc_profile', cat: 'service', shape: 'stmt', msg: 'nur im Profil %1', args: [T('P', 'debug')], scope: S, where: SW, gen: (v, c) => { list(c.target, 'profiles').push(v.P); } },
+  {
+    type: 'svc_limits', cat: 'service', shape: 'stmt', msg: 'Grenzen RAM %1 CPUs %2 Prozesse %3', args: [T('MEM', '512m'), T('CPUS', ''), T('PIDS', '')], scope: S, where: SW,
+    tip: 'mem_limit, cpus und pids_limit direkt am Service (ohne deploy:). Leere Felder werden weggelassen.',
+    gen: (v, c) => {
+      if (v.MEM) c.target.mem_limit = v.MEM;
+      if (v.CPUS) c.target.cpus = numOr(v.CPUS);
+      if (v.PIDS) c.target.pids_limit = numOr(v.PIDS);
+    },
+  },
+  {
+    type: 'svc_cap', cat: 'service', shape: 'stmt', msg: 'Capability %1 %2', args: [D('MODE', [['entfernen', 'cap_drop'], ['hinzufügen', 'cap_add']]), T('CAP', 'ALL')], scope: S, where: SW,
+    gen: (v, c) => { list(c.target, v.MODE).push(v.CAP); },
+  },
+  { type: 'svc_security_opt', cat: 'service', shape: 'stmt', msg: 'Security-Option %1', args: [T('OPT', 'no-new-privileges:true')], scope: S, where: SW, gen: (v, c) => { list(c.target, 'security_opt').push(v.OPT); } },
 ];
 
 // =====================================================================
@@ -189,6 +220,16 @@ const resources: BlockSpec[] = [
       const tpl = podTemplate(v.NAME);
       const doc = newDoc(ctx, 'apps/v1', 'Deployment', v.NAME, { replicas: v.REPLICAS, strategy: undefined, selector: { matchLabels: { app: v.NAME } }, template: tpl });
       run(['k8s', 'Deployment', 'pod'], { doc, target: doc, pod: tpl.spec, podMeta: tpl.metadata });
+      checkContainers(ctx, tpl.spec, v.NAME);
+    },
+  },
+  {
+    type: 'k8s_deploymentconfig', cat: 'resources', shape: 'hat', msg: 'DeploymentConfig (OpenShift) %1 Replicas %2', args: [T('NAME', 'demo-app'), N('REPLICAS', 1, 0, 1)],
+    tip: 'Klassische OpenShift-DeploymentConfig. Strategie und Trigger über die DC-Blöcke (Pod-Kategorie).',
+    gen: (v, ctx, run) => {
+      const tpl = podTemplate(v.NAME);
+      const doc = newDoc(ctx, 'apps.openshift.io/v1', 'DeploymentConfig', v.NAME, { replicas: v.REPLICAS, selector: { app: v.NAME }, strategy: undefined, triggers: [], template: tpl });
+      run(['k8s', 'DeploymentConfig', 'pod'], { doc, target: doc, pod: tpl.spec, podMeta: tpl.metadata });
       checkContainers(ctx, tpl.spec, v.NAME);
     },
   },
@@ -394,6 +435,31 @@ const pod: BlockSpec[] = [
     gen: (v, c) => { c.doc.spec.strategy = { type: v.S }; },
   },
   {
+    type: 'dc_strategy', cat: 'pod', shape: 'stmt', msg: 'DC-Strategie %1 Intervall %2 s Update-Pause %3 s Timeout %4 s max. weg %5 max. extra %6',
+    args: [D('S', ['Rolling', 'Recreate']), T('INTERVAL', ''), T('UPDATE', ''), T('TIMEOUT', '600'), T('UNAVAIL', '25%'), T('SURGE', '25%')],
+    scope: ['DeploymentConfig'], where: 'unter eine DeploymentConfig',
+    gen: (v, c) => {
+      const params: any = {};
+      if (v.S === 'Rolling') {
+        if (v.UPDATE) params.updatePeriodSeconds = numOr(v.UPDATE);
+        if (v.INTERVAL) params.intervalSeconds = numOr(v.INTERVAL);
+        if (v.TIMEOUT) params.timeoutSeconds = numOr(v.TIMEOUT);
+        if (v.UNAVAIL) params.maxUnavailable = numOr(v.UNAVAIL);
+        if (v.SURGE) params.maxSurge = numOr(v.SURGE);
+      } else if (v.TIMEOUT) params.timeoutSeconds = numOr(v.TIMEOUT);
+      c.doc.spec.strategy = { type: v.S, [v.S === 'Rolling' ? 'rollingParams' : 'recreateParams']: Object.keys(params).length ? params : undefined };
+    },
+  },
+  {
+    type: 'dc_trigger', cat: 'pod', shape: 'stmt', msg: 'DC-Trigger %1 ImageStreamTag %2 Container %3',
+    args: [D('T', [['Config-Änderung', 'ConfigChange'], ['neues Image', 'ImageChange']]), T('IST', ''), T('CONT', '')],
+    scope: ['DeploymentConfig'], where: 'unter eine DeploymentConfig',
+    gen: (v, c) => {
+      if (v.T === 'ConfigChange') return void c.doc.spec.triggers.push({ type: 'ConfigChange' });
+      c.doc.spec.triggers.push({ type: 'ImageChange', imageChangeParams: { automatic: true, containerNames: v.CONT ? [v.CONT] : undefined, from: { kind: 'ImageStreamTag', name: v.IST } } });
+    },
+  },
+  {
     type: 'pod_security', cat: 'pod', shape: 'stmt', msg: 'Pod läuft nicht als root %1 fsGroup %2', args: [C('NONROOT', true), T('FSGROUP', '')], scope: P, where: PW,
     gen: (v, c) => {
       const sc = at(c.pod, 'securityContext');
@@ -446,13 +512,15 @@ const container: BlockSpec[] = [
   { type: 'c_pull', cat: 'container', shape: 'stmt', msg: 'Image laden %1', args: [D('P', ['IfNotPresent', 'Always', 'Never'])], scope: K, where: KW, gen: (v, c) => { c.container.imagePullPolicy = v.P; } },
   { type: 'c_workdir', cat: 'container', shape: 'stmt', msg: 'Arbeitsordner %1', args: [T('DIR', '/app')], scope: K, where: KW, gen: (v, c) => { c.container.workingDir = v.DIR; } },
   {
-    type: 'c_probe', cat: 'container', shape: 'stmt', msg: '%1 prüfen per %2 Pfad %3 Port %4 nach %5 s alle %6 s',
-    args: [D('KIND', [['Lebt? (liveness)', 'livenessProbe'], ['Bereit? (readiness)', 'readinessProbe'], ['Gestartet? (startup)', 'startupProbe']]), D('HOW', [['HTTP GET', 'http'], ['TCP', 'tcp']]), T('PATH', '/healthz'), T('PORT', '8080'), N('DELAY', 5, 0, 1), N('PERIOD', 10, 1, 1)],
+    type: 'c_probe', cat: 'container', shape: 'stmt', msg: '%1 prüfen per %2 Pfad %3 Port %4 nach %5 s alle %6 s Timeout %7 s Fehlversuche %8',
+    args: [D('KIND', [['Lebt? (liveness)', 'livenessProbe'], ['Bereit? (readiness)', 'readinessProbe'], ['Gestartet? (startup)', 'startupProbe']]), D('HOW', [['HTTP GET', 'http'], ['TCP', 'tcp']]), T('PATH', '/healthz'), T('PORT', '8080'), N('DELAY', 5, 0, 1), N('PERIOD', 10, 1, 1), T('TIMEOUT', ''), T('FAIL', '')],
     scope: K, where: KW,
     gen: (v, c) => {
       const probe: any = v.HOW === 'http' ? { httpGet: { path: v.PATH || '/', port: portVal(v.PORT) } } : { tcpSocket: { port: portVal(v.PORT) } };
       probe.initialDelaySeconds = v.DELAY;
       probe.periodSeconds = v.PERIOD;
+      if (v.TIMEOUT) probe.timeoutSeconds = numOr(v.TIMEOUT);
+      if (v.FAIL) probe.failureThreshold = numOr(v.FAIL);
       c.container[v.KIND] = probe;
     },
   },
@@ -636,6 +704,12 @@ function quoted(s: string) {
   const sc = new Scalar(s);
   sc.type = Scalar.QUOTE_DOUBLE;
   return sc;
+}
+
+/** "5" -> 5, "25%" -> "25%" */
+function numOr(s: string): string | number {
+  const t = String(s).trim();
+  return /^-?\d+(\.\d+)?$/.test(t) ? Number(t) : t;
 }
 
 function b64(s: string) {

@@ -26,7 +26,8 @@ Optionen eines Compose-Services. Diese Blöcke gehören **in** einen `Service`-K
 | [Command …](#svc-command) | Stapel | in einen "Service"-Block |
 | [Entrypoint …](#svc-entrypoint) | Stapel | in einen "Service"-Block |
 | [im Netzwerk …](#svc-network) | Stapel | in einen "Service"-Block |
-| [Healthcheck … alle … Timeout … Versuche …](#svc-healthcheck) | Stapel | in einen "Service"-Block |
+| [Healthcheck … … alle … Timeout … Versuche … Startphase …](#svc-healthcheck) | Stapel | in einen "Service"-Block |
+| [Healthcheck ausschalten](#svc-healthcheck-off) | Stapel | in einen "Service"-Block |
 | [Label … = …](#svc-label) | Stapel | in einen "Service"-Block |
 | [Limit CPU … RAM …](#svc-resources) | Stapel | in einen "Service"-Block |
 | [Replicas …](#svc-replicas) | Stapel | in einen "Service"-Block |
@@ -36,6 +37,9 @@ Optionen eines Compose-Services. Diese Blöcke gehören **in** einen `Service`-K
 | [nutzt Secret …](#svc-secret) | Stapel | in einen "Service"-Block |
 | [Logging … max. Größe … Dateien …](#svc-logging) | Stapel | in einen "Service"-Block |
 | [nur im Profil …](#svc-profile) | Stapel | in einen "Service"-Block |
+| [Grenzen RAM … CPUs … Prozesse …](#svc-limits) | Stapel | in einen "Service"-Block |
+| [Capability … …](#svc-cap) | Stapel | in einen "Service"-Block |
+| [Security-Option …](#svc-security-opt) | Stapel | in einen "Service"-Block |
 
 ## Image … {#svc-image}
 
@@ -344,18 +348,22 @@ services:
 
 </details>
 
-## Healthcheck … alle … Timeout … Versuche … {#svc-healthcheck}
+## Healthcheck … … alle … Timeout … Versuche … Startphase … {#svc-healthcheck}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>Healthcheck [1] alle [2] Timeout [3] Versuche [4]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Healthcheck [1] [2] alle [3] Timeout [4] Versuche [5] Startphase [6]</div>
 
 **Stapelblock** · Typ-ID `svc_healthcheck` · gehört in einen "Service"-Block
 
+> Shell: Befehl läuft in /bin/sh. Befehl (CMD): direkt ausgeführt, Argumente mit Leerzeichen in Anführungszeichen setzen.
+
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
-| 1 | `CMD` | Text | `curl -f http://localhost/ || exit 1` |  |
-| 2 | `INT` | Text | `30s` |  |
-| 3 | `TO` | Text | `5s` |  |
-| 4 | `RET` | Zahl | `3` |  |
+| 1 | `MODE` | Auswahl | `Shell (CMD-SHELL)` | `Shell (CMD-SHELL)` → `CMD-SHELL`, `Befehl (CMD)` → `CMD` |
+| 2 | `CMD` | Text | `curl -f http://localhost/ || exit 1` |  |
+| 3 | `INT` | Text | `30s` |  |
+| 4 | `TO` | Text | `5s` |  |
+| 5 | `RET` | Zahl | `3` |  |
+| 6 | `START` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -371,6 +379,27 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+```
+
+</details>
+
+## Healthcheck ausschalten {#svc-healthcheck-off}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Healthcheck ausschalten</div>
+
+**Stapelblock** · Typ-ID `svc_healthcheck_off` · gehört in einen "Service"-Block
+
+> Schaltet einen im Image definierten Healthcheck ab (disable: true).
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    healthcheck:
+      disable: true
 ```
 
 </details>
@@ -588,6 +617,79 @@ services:
     image: nginx:latest
     profiles:
       - debug
+```
+
+</details>
+
+## Grenzen RAM … CPUs … Prozesse … {#svc-limits}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Grenzen RAM [1] CPUs [2] Prozesse [3]</div>
+
+**Stapelblock** · Typ-ID `svc_limits` · gehört in einen "Service"-Block
+
+> mem_limit, cpus und pids_limit direkt am Service (ohne deploy:). Leere Felder werden weggelassen.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `MEM` | Text | `512m` |  |
+| 2 | `CPUS` | Text | *(leer)* |  |
+| 3 | `PIDS` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    mem_limit: 512m
+```
+
+</details>
+
+## Capability … … {#svc-cap}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Capability [1] [2]</div>
+
+**Stapelblock** · Typ-ID `svc_cap` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `MODE` | Auswahl | `entfernen` | `entfernen` → `cap_drop`, `hinzufügen` → `cap_add` |
+| 2 | `CAP` | Text | `ALL` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    cap_drop:
+      - ALL
+```
+
+</details>
+
+## Security-Option … {#svc-security-opt}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Security-Option [1]</div>
+
+**Stapelblock** · Typ-ID `svc_security_opt` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `OPT` | Text | `no-new-privileges:true` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    security_opt:
+      - no-new-privileges:true
 ```
 
 </details>

@@ -70,10 +70,11 @@ export function registerBlocks() {
 const VAR_RE = /\$\{([A-Za-z_][\w.-]*)\}/g;
 
 /** Read a block's field values into a plain object (typed), substituting ${VARS}. */
-export function readValues(block: Blockly.Block, spec: BlockSpec, vars: Record<string, string> = {}, problems: string[] = []): Record<string, any> {
+export function readValues(block: Blockly.Block, spec: BlockSpec, vars: Record<string, string> = {}, problems: string[] = [], passThroughUnknown = false): Record<string, any> {
   const subst = (s: string) =>
     s.replace(VAR_RE, (m, name) => {
       if (name in vars) return vars[name];
+      if (passThroughUnknown) return m;
       problems.push(`Variable \${${name}} ist nicht definiert.`);
       return m;
     });

@@ -35,7 +35,7 @@ function yamlForFile(f: ProjectFile, vars: Record<string, string>): string {
   try {
     Blockly.Events.disable();
     Blockly.serialization.workspaces.load(f.state, ws);
-    return generate(ws, vars).yaml;
+    return generate(ws, vars, { passThroughUnknownVars: f.kind === 'compose' }).yaml;
   } finally {
     Blockly.Events.enable();
     ws.dispose();

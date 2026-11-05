@@ -13,15 +13,15 @@ Grundgerüst einer `docker-compose.yml`: der Startblock, Services sowie projektw
 
 | Block | Art | Platz |
 | --- | --- | --- |
-| [Docker Compose · Projekt …](#compose-file) | Start | oberste Ebene |
+| [Docker Compose · Projekt … Version …](#compose-file) | Start | oberste Ebene |
 | [Service … Image …](#compose-service) | Klammer | unter einen "Docker Compose"-Startblock |
-| [Volume … Treiber …](#compose-volume) | Stapel | unter einen "Docker Compose"-Startblock |
-| [Netzwerk … Treiber … extern …](#compose-network) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Volume … Treiber … extern … echter Name …](#compose-volume) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Netzwerk … Treiber … extern … intern (ohne Internet) …](#compose-network) | Stapel | unter einen "Docker Compose"-Startblock |
 | [Secret … aus Datei …](#compose-secret) | Stapel | unter einen "Docker Compose"-Startblock |
 
-## Docker Compose · Projekt … {#compose-file}
+## Docker Compose · Projekt … Version … {#compose-file}
 
-<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt [1]</div>
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Docker Compose · Projekt [1] Version [2]</div>
 
 **Startblock – beginnt ein YAML-Dokument** · Typ-ID `compose_file`
 
@@ -30,6 +30,7 @@ Grundgerüst einer `docker-compose.yml`: der Startblock, Services sowie projektw
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `NAME` | Text | *(leer)* |  |
+| 2 | `VERSION` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -64,16 +65,20 @@ services:
 
 </details>
 
-## Volume … Treiber … {#compose-volume}
+## Volume … Treiber … extern … echter Name … {#compose-volume}
 
-<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Volume [1] Treiber [2]</div>
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Volume [1] Treiber [2] extern [3] echter Name [4]</div>
 
 **Stapelblock** · Typ-ID `compose_volume` · gehört unter einen "Docker Compose"-Startblock
+
+> Extern = Volume existiert schon (docker volume create). "echter Name" setzt name: für Volumes aus einem anderen Stack.
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `NAME` | Text | `data` |  |
 | 2 | `DRIVER` | Auswahl | `Standard` | `Standard`, `local` |
+| 3 | `EXTERNAL` | Häkchen | aus |  |
+| 4 | `XNAME` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -85,9 +90,9 @@ volumes:
 
 </details>
 
-## Netzwerk … Treiber … extern … {#compose-network}
+## Netzwerk … Treiber … extern … intern (ohne Internet) … {#compose-network}
 
-<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Netzwerk [1] Treiber [2] extern [3]</div>
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Netzwerk [1] Treiber [2] extern [3] intern (ohne Internet) [4]</div>
 
 **Stapelblock** · Typ-ID `compose_network` · gehört unter einen "Docker Compose"-Startblock
 
@@ -96,6 +101,7 @@ volumes:
 | 1 | `NAME` | Text | `backend` |  |
 | 2 | `DRIVER` | Auswahl | `Standard` | `Standard`, `bridge`, `overlay`, `host`, `macvlan`, `none` |
 | 3 | `EXTERNAL` | Häkchen | aus |  |
+| 4 | `INTERNAL` | Häkchen | aus |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>

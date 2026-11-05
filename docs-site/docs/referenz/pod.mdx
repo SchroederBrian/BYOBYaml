@@ -26,6 +26,8 @@ Einstellungen auf Pod-Ebene. Gehören unter Deployment, StatefulSet, DaemonSet, 
 | [nur auf Nodes mit … = …](#pod-node-selector) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
 | [Neustart-Regel …](#pod-restart-policy) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
 | [Update-Strategie …](#pod-strategy) | Stapel | unter ein Deployment |
+| [DC-Strategie … Intervall … s Update-Pause … s Timeout … s max. weg … max. extra …](#dc-strategy) | Stapel | unter eine DeploymentConfig |
+| [DC-Trigger … ImageStreamTag … Container …](#dc-trigger) | Stapel | unter eine DeploymentConfig |
 | [Pod läuft nicht als root … fsGroup …](#pod-security) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
 | [Beenden-Wartezeit … Sekunden](#pod-grace) | Stapel | unter ein Deployment, StatefulSet, Job oder CronJob |
 
@@ -481,6 +483,57 @@ spec:
     metadata:
       labels:
         app: demo
+```
+
+</details>
+
+## DC-Strategie … Intervall … s Update-Pause … s Timeout … s max. weg … max. extra … {#dc-strategy}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>DC-Strategie [1] Intervall [2] s Update-Pause [3] s Timeout [4] s max. weg [5] max. extra [6]</div>
+
+**Stapelblock** · Typ-ID `dc_strategy` · gehört unter eine DeploymentConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Auswahl | `Rolling` | `Rolling`, `Recreate` |
+| 2 | `INTERVAL` | Text | *(leer)* |  |
+| 3 | `UPDATE` | Text | *(leer)* |  |
+| 4 | `TIMEOUT` | Text | `600` |  |
+| 5 | `UNAVAIL` | Text | `25%` |  |
+| 6 | `SURGE` | Text | `25%` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+```
+
+</details>
+
+## DC-Trigger … ImageStreamTag … Container … {#dc-trigger}
+
+<div className="block-sig" style={{ '--c': '#c9702a' }}>DC-Trigger [1] ImageStreamTag [2] Container [3]</div>
+
+**Stapelblock** · Typ-ID `dc_trigger` · gehört unter eine DeploymentConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `T` | Auswahl | `Config-Änderung` | `Config-Änderung` → `ConfigChange`, `neues Image` → `ImageChange` |
+| 2 | `IST` | Text | *(leer)* |  |
+| 3 | `CONT` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
 ```
 
 </details>

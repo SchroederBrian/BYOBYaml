@@ -15,6 +15,7 @@ Startblöcke für Kubernetes- und OpenShift-Ressourcen. Jeder Startblock erzeugt
 | --- | --- | --- |
 | [Namespace …](#k8s-namespace) | Start | oberste Ebene |
 | [Deployment … Replicas …](#k8s-deployment) | Start | oberste Ebene |
+| [DeploymentConfig (OpenShift) … Replicas …](#k8s-deploymentconfig) | Start | oberste Ebene |
 | [StatefulSet … Replicas … Service …](#k8s-statefulset) | Start | oberste Ebene |
 | [DaemonSet …](#k8s-daemonset) | Start | oberste Ebene |
 | [Job … Versuche …](#k8s-job) | Start | oberste Ebene |
@@ -79,6 +80,39 @@ spec:
   selector:
     matchLabels:
       app: demo-app
+  template:
+    metadata:
+      labels:
+        app: demo-app
+```
+
+</details>
+
+## DeploymentConfig (OpenShift) … Replicas … {#k8s-deploymentconfig}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>DeploymentConfig (OpenShift) [1] Replicas [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_deploymentconfig`
+
+> Klassische OpenShift-DeploymentConfig. Strategie und Trigger über die DC-Blöcke (Pod-Kategorie).
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `demo-app` |  |
+| 2 | `REPLICAS` | Zahl | `1` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: demo-app
+spec:
+  replicas: 1
+  selector:
+    app: demo-app
   template:
     metadata:
       labels:

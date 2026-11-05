@@ -23,9 +23,9 @@ Service mit Volume, Healthcheck und Restart
   - `Variable POSTGRES_PASSWORD = change-me`
   - `Variable POSTGRES_DB = app`
   - `Volume pgdata → /var/lib/postgresql/data nur lesen ☐`
-  - `Healthcheck pg_isready -U app alle 10s Timeout 5s Versuche 5`
+  - `Healthcheck undefined pg_isready -U app alle 10s Timeout 5s Versuche 5 Startphase `
   - `Neustart unless-stopped`
-- `Volume pgdata Treiber Standard`
+- `Volume pgdata Treiber Standard extern ☐ echter Name `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -62,9 +62,9 @@ Service mit Volume und Healthcheck
   - `Variable MARIADB_ROOT_PASSWORD = change-me`
   - `Variable MARIADB_DATABASE = app`
   - `Volume mariadb → /var/lib/mysql nur lesen ☐`
-  - `Healthcheck healthcheck.sh --connect --innodb_initialized alle 10s Timeout 5s Versuche 5`
+  - `Healthcheck undefined healthcheck.sh --connect --innodb_initialized alle 10s Timeout 5s Versuche 5 Startphase `
   - `Neustart unless-stopped`
-- `Volume mariadb Treiber Standard`
+- `Volume mariadb Treiber Standard extern ☐ echter Name `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -99,9 +99,9 @@ AOF-Persistenz und Volume
 - `Service redis Image redis:7-alpine`
   - `Command redis-server --appendonly yes`
   - `Volume redis → /data nur lesen ☐`
-  - `Healthcheck redis-cli ping alle 10s Timeout 3s Versuche 5`
+  - `Healthcheck undefined redis-cli ping alle 10s Timeout 3s Versuche 5 Startphase `
   - `Neustart unless-stopped`
-- `Volume redis Treiber Standard`
+- `Volume redis Treiber Standard extern ☐ echter Name `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -275,7 +275,7 @@ services:
 
 curl gegen /health (in Service legen)
 
-- `Healthcheck curl -fsS http://localhost:3000/health || exit 1 alle 30s Timeout 5s Versuche 3`
+- `Healthcheck undefined curl -fsS http://localhost:3000/health || exit 1 alle 30s Timeout 5s Versuche 3 Startphase `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -373,8 +373,8 @@ services:
 
 Zwei getrennte Netzwerke
 
-- `Netzwerk frontend Treiber bridge extern ☐`
-- `Netzwerk backend Treiber bridge extern ☐`
+- `Netzwerk frontend Treiber bridge extern ☐ intern (ohne Internet) ☐`
+- `Netzwerk backend Treiber bridge extern ☐ intern (ohne Internet) ☐`
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -402,8 +402,8 @@ Container mit Port, Ressourcen und Probes
   - `Port 8080 Name http TCP`
   - `mindestens (requests) CPU 100m RAM 128Mi`
   - `höchstens (limits) CPU 500m RAM 512Mi`
-  - `Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port http nach 5 s alle 10 s`
-  - `Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port http nach 15 s alle 20 s`
+  - `Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port http nach 5 s alle 10 s Timeout s Fehlversuche `
+  - `Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port http nach 15 s alle 20 s Timeout s Fehlversuche `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -839,9 +839,9 @@ spec:
 
 Startup, Liveness, Readiness (in Container legen)
 
-- `Gestartet? (startup) prüfen per HTTP GET Pfad /healthz Port 8080 nach 0 s alle 5 s`
-- `Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port 8080 nach 0 s alle 20 s`
-- `Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port 8080 nach 0 s alle 10 s`
+- `Gestartet? (startup) prüfen per HTTP GET Pfad /healthz Port 8080 nach 0 s alle 5 s Timeout s Fehlversuche `
+- `Lebt? (liveness) prüfen per HTTP GET Pfad /healthz Port 8080 nach 0 s alle 20 s Timeout s Fehlversuche `
+- `Bereit? (readiness) prüfen per HTTP GET Pfad /ready Port 8080 nach 0 s alle 10 s Timeout s Fehlversuche `
 
 <details>
 <summary>Erzeugtes YAML</summary>
