@@ -471,13 +471,14 @@ const resources: BlockSpec[] = [
   {
     type: 'k8s_buildconfig', cat: 'resources', shape: 'hat', msg: 'BuildConfig %1 → ImageStreamTag %2 Ablauf %3',
     args: [T('NAME', 'demo-app-build'), T('OUT', 'demo-app:latest'), D('RUN', ['Serial', 'Parallel', 'SerialLatestOnly'])],
-    tip: 'OpenShift BuildConfig: baut ein Image aus Git und schiebt es in einen ImageStream.',
+    tip: 'OpenShift BuildConfig: baut ein Image aus Git und schiebt es in einen ImageStream. Für externe Registries das Ziel leer lassen und "Image schieben nach" nutzen.',
     gen: (v, ctx, run) => {
-      const spec: any = { runPolicy: v.RUN, source: undefined, strategy: undefined, output: { to: { kind: 'ImageStreamTag', name: v.OUT } }, triggers: [] };
+      const spec: any = { runPolicy: v.RUN, source: undefined, strategy: undefined, output: v.OUT ? { to: { kind: 'ImageStreamTag', name: v.OUT } } : undefined, triggers: [] };
       const doc = newDoc(ctx, 'build.openshift.io/v1', 'BuildConfig', v.NAME, spec);
       run(['k8s', 'BuildConfig'], { doc, target: doc });
       if (!spec.source) ctx.warn('BuildConfig braucht eine Quelle (z.B. Git).');
       if (!spec.strategy) ctx.warn('BuildConfig braucht eine Strategie (Docker oder S2I).');
+      if (!spec.output) ctx.warn('BuildConfig ohne Ziel: ImageStreamTag im Startblock oder "Image schieben nach"-Block setzen.');
     },
   },
   {
@@ -804,7 +805,7 @@ const build: BlockSpec[] = [
   },
   {
     type: 'bc_git', cat: 'build', shape: 'stmt', msg: 'Git Quelle %1 Branch %2 Unterordner %3', args: [T('URI', 'https://github.com/example/demo-app.git'), T('REF', 'main'), T('DIR', '')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
-    gen: (v, c) => { c.doc.spec.source = { type: 'Git', git: { uri: v.URI, ref: v.REF || undefined }, contextDir: v.DIR || undefined }; },
+    gen: (v, c) => { Object.assign(at(c.doc.spec, 'source'), { type: 'Git', git: { uri: v.URI, ref: v.REF || undefined }, contextDir: v.DIR || undefined }); },
   },
   { type: 'bc_source_secret', cat: 'build', shape: 'stmt', msg: 'Git-Zugang aus Secret %1', args: [T('S', 'git-credentials')], scope: ['BuildConfig'], where: 'unter eine BuildConfig', gen: (v, c) => { at(c.doc.spec, 'source').sourceSecret = { name: v.S }; } },
   {
@@ -839,7 +840,84 @@ const build: BlockSpec[] = [
     type: 'bc_resources', cat: 'build', shape: 'stmt', msg: 'Build-Ressourcen CPU %1 RAM %2', args: [T('CPU', '500m'), T('MEM', '1Gi')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
     gen: (v, c) => { c.doc.spec.resources = { limits: { cpu: v.CPU || undefined, memory: v.MEM || undefined } }; },
   },
+  {
+    type: 'bc_output', cat: 'build', shape: 'stmt', msg: 'Image schieben nach %1 %2 Push-Secret %3',
+    args: [D('KIND', [['Registry (DockerImage)', 'DockerImage'], ['ImageStreamTag', 'ImageStreamTag']]), T('NAME', 'registry.example.com/team/demo-app:latest'), T('SECRET', '')],
+    scope: ['BuildConfig'], where: 'unter eine BuildConfig', tip: 'Ersetzt das Ziel aus dem Startblock: externe Registry (DockerImage) mit Zugangsdaten aus einem Push-Secret.',
+    gen: (v, c) => {
+      const out = at(c.doc.spec, 'output');
+      out.to = { kind: v.KIND, name: v.NAME };
+      if (v.SECRET) out.pushSecret = { name: v.SECRET };
+    },
+  },
+  {
+    type: 'bc_output_label', cat: 'build', shape: 'stmt', msg: 'Image-Label %1 = %2', args: [T('K', 'io.openshift.build.source'), T('V', 'git')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
+    gen: (v, c) => { list(at(c.doc.spec, 'output'), 'imageLabels').push({ name: v.K, value: v.V }); },
+  },
+  {
+    type: 'bc_pull_secret', cat: 'build', shape: 'stmt', msg: 'Basis-Image laden mit Pull-Secret %1', args: [T('S', 'registry-secret')], scope: ['BuildConfig'], where: 'unter eine BuildConfig nach der Strategie',
+    tip: 'pullSecret der Strategie: Zugang zur Registry, aus der das FROM-Image im Dockerfile (bzw. der S2I-Builder) geladen wird.',
+    gen: (v, c) => { const inner = strategyInner(c); if (inner) inner.pullSecret = { name: v.S }; },
+  },
+  {
+    type: 'bc_strategy_opts', cat: 'build', shape: 'stmt', msg: 'ohne Cache bauen %1 Basis-Image immer neu laden %2', args: [C('NOCACHE', true), C('FORCE', false)], scope: ['BuildConfig'], where: 'unter eine BuildConfig nach der Strategie',
+    gen: (v, c) => {
+      const inner = strategyInner(c);
+      if (!inner) return;
+      if (v.NOCACHE && c.doc.spec.strategy.type === 'Docker') inner.noCache = true;
+      if (v.FORCE) inner.forcePull = true;
+    },
+  },
+  {
+    type: 'bc_docker_from', cat: 'build', shape: 'stmt', msg: 'FROM im Dockerfile ersetzen durch %1 %2', args: [D('KIND', [['Registry (DockerImage)', 'DockerImage'], ['ImageStreamTag', 'ImageStreamTag']]), T('NAME', 'registry.access.redhat.com/ubi9/nodejs-20:latest')], scope: ['BuildConfig'], where: 'unter eine BuildConfig nach der Strategie',
+    gen: (v, c) => { const inner = strategyInner(c); if (inner) inner.from = { kind: v.KIND, name: v.NAME }; },
+  },
+  {
+    type: 'bc_strategy_env', cat: 'build', shape: 'stmt', msg: 'Umgebungsvariable im Build %1 = %2', args: [T('K', 'HTTP_PROXY'), T('V', '')], scope: ['BuildConfig'], where: 'unter eine BuildConfig nach der Strategie',
+    tip: 'env der Docker-Strategie (im Unterschied zu Build-Variablen = --build-arg).',
+    gen: (v, c) => { const inner = strategyInner(c); if (inner) list(inner, 'env').push({ name: v.K, value: v.V }); },
+  },
+  {
+    type: 'bc_history', cat: 'build', shape: 'stmt', msg: 'Builds behalten: erfolgreiche %1 fehlgeschlagene %2', args: [T('OK', '2'), T('FAIL', '1')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
+    tip: 'successfulBuildsHistoryLimit / failedBuildsHistoryLimit – ältere Builds werden automatisch gelöscht.',
+    gen: (v, c) => {
+      if (v.OK !== '') c.doc.spec.successfulBuildsHistoryLimit = numOr(v.OK);
+      if (v.FAIL !== '') c.doc.spec.failedBuildsHistoryLimit = numOr(v.FAIL);
+    },
+  },
+  {
+    type: 'bc_deadline', cat: 'build', shape: 'stmt', msg: 'Build abbrechen nach %1 Sekunden', args: [T('S', '1800')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
+    gen: (v, c) => { c.doc.spec.completionDeadlineSeconds = numOr(v.S); },
+  },
+  {
+    type: 'bc_post_commit', cat: 'build', shape: 'stmt', msg: 'nach dem Build testen mit %1', args: [M('SCRIPT', 'npm test')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
+    tip: 'postCommit: läuft im fertigen Image, bevor es geschoben wird. Fehler = Build fehlgeschlagen.',
+    gen: (v, c) => { c.doc.spec.postCommit = { script: v.SCRIPT }; },
+  },
+  {
+    type: 'bc_node_selector', cat: 'build', shape: 'stmt', msg: 'Build nur auf Nodes mit %1 = %2', args: [T('K', 'node-role.kubernetes.io/worker'), T('V', '')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
+    gen: (v, c) => { at(c.doc.spec, 'nodeSelector')[v.K] = v.V; },
+  },
+  {
+    type: 'bc_dockerfile', cat: 'build', shape: 'stmt', msg: 'Dockerfile direkt %1', args: [M('TEXT', 'FROM nginx:1.27\nCOPY . /usr/share/nginx/html\n')], scope: ['BuildConfig'], where: 'unter eine BuildConfig',
+    tip: 'Dockerfile direkt in der BuildConfig (source.dockerfile) statt aus dem Git-Repo.',
+    gen: (v, c) => {
+      const src = at(c.doc.spec, 'source');
+      src.dockerfile = v.TEXT;
+      if (!src.type) src.type = 'Dockerfile';
+    },
+  },
 ];
+
+/** dockerStrategy / sourceStrategy of the current BuildConfig (warns if no strategy block above). */
+function strategyInner(c: Ctx): any {
+  const st = c.doc.spec.strategy;
+  if (!st) {
+    c.warn('Erst einen Strategie-Block (Docker/S2I) darüber setzen.');
+    return undefined;
+  }
+  return st.dockerStrategy || st.sourceStrategy;
+}
 
 // =====================================================================
 // SCALING (HPA)

@@ -359,6 +359,25 @@ function importTemplateMeta(tmeta: any, name: string, path: string, body: B[], t
   tail.push(...leftovers(tmeta, path));
 }
 
+/** pullSecret / noCache / forcePull / from / env of a build strategy → blocks (consumed keys are removed). */
+function strategyExtras(inner: any, body: B[]) {
+  if (!isPlain(inner)) return;
+  if (onlyKeys(inner.from, ['kind', 'name']) && ddOk('bc_docker_from', 'KIND', inner.from.kind)) body.push(b('bc_docker_from', { KIND: inner.from.kind, NAME: str(take(inner, 'from').name) }));
+  if (onlyKeys(inner.pullSecret, ['name'])) body.push(b('bc_pull_secret', { S: str(take(inner, 'pullSecret').name) }));
+  const nc = inner.noCache;
+  const fp = inner.forcePull;
+  if ((nc === true || fp === true) && [nc, fp].every((x) => x === undefined || x === true)) {
+    delete inner.noCache;
+    delete inner.forcePull;
+    body.push(b('bc_strategy_opts', { NOCACHE: nc === true, FORCE: fp === true }));
+  }
+  const env = inner.env;
+  if (Array.isArray(env) && env.every((a: any) => onlyKeys(a, ['name', 'value']) && typeof a.value !== 'object')) {
+    delete inner.env;
+    for (const a of env) body.push(b('bc_strategy_env', { K: a.name, V: str(a.value) }));
+  }
+}
+
 function importK8sDoc(doc: any, notes: Set<string>): any {
   stripClusterFields(doc, notes);
   const kind = str(take(doc, 'kind'));
@@ -590,18 +609,34 @@ function importK8sDoc(doc: any, notes: Set<string>): any {
     const run = take(s, 'runPolicy') ?? 'Serial';
     const out = take(s, 'output');
     const outStd = onlyKeys(out, ['to']) && onlyKeys(out.to, ['kind', 'name']) && out.to.kind === 'ImageStreamTag';
+    const labelsOk = (l: any) => l === undefined || (Array.isArray(l) && l.every((x: any) => onlyKeys(x, ['name', 'value']) && typeof x.value !== 'object'));
+    const outExt =
+      !outStd &&
+      onlyKeys(out, ['to', 'pushSecret', 'imageLabels']) &&
+      onlyKeys(out.to, ['kind', 'name']) &&
+      ddOk('bc_output', 'KIND', out.to.kind) &&
+      (out.pushSecret === undefined || onlyKeys(out.pushSecret, ['name'])) &&
+      labelsOk(out.imageLabels);
     hat = b('k8s_buildconfig', { NAME: name, OUT: outStd ? str(out.to.name) : '', RUN: ddOk('k8s_buildconfig', 'RUN', run) ? run : 'Serial' });
-    if (!outStd) tail.push(field('spec.output', out ?? null));
+    if (outExt) {
+      body.push(b('bc_output', { KIND: out.to.kind, NAME: str(out.to.name), SECRET: str(out.pushSecret?.name) }));
+      for (const l of out.imageLabels ?? []) body.push(b('bc_output_label', { K: l.name, V: str(l.value) }));
+    } else if (!outStd && out !== undefined) tail.push(field('spec.output', out));
     if (!ddOk('k8s_buildconfig', 'RUN', run)) tail.push(field('spec.runPolicy', run));
     const src = take(s, 'source');
     if (src !== undefined) {
+      if (typeof src?.dockerfile === 'string' && (src.type === 'Dockerfile' || src.type === 'Git')) {
+        body.push(b('bc_dockerfile', { TEXT: src.dockerfile }));
+        delete src.dockerfile;
+        if (src.type === 'Dockerfile') delete src.type;
+      }
       if (src?.type === 'Git' && onlyKeys(src.git, ['uri', 'ref'])) {
         body.push(b('bc_git', { URI: str(src.git.uri), REF: str(src.git.ref), DIR: str(src.contextDir) }));
         if (onlyKeys(src.sourceSecret, ['name'])) body.push(b('bc_source_secret', { S: str(src.sourceSecret.name) }));
         else if (src.sourceSecret) tail.push(field('spec.source.sourceSecret', src.sourceSecret));
         for (const k of ['type', 'git', 'contextDir', 'sourceSecret']) delete src[k];
         tail.push(...leftovers(src, 'spec.source'));
-      } else tail.push(field('spec.source', src));
+      } else if (Object.keys(src ?? {}).length) tail.push(field('spec.source', src));
     }
     const st = take(s, 'strategy');
     if (st !== undefined) {
@@ -612,11 +647,13 @@ function importK8sDoc(doc: any, notes: Set<string>): any {
         body.push(b('bc_docker', { FILE: str(ds?.dockerfilePath ?? 'Dockerfile') }));
         for (const a of ds?.buildArgs ?? []) body.push(b('bc_build_arg', { K: a.name, V: str(a.value) }));
         if (ds) for (const k of ['dockerfilePath', 'buildArgs']) delete ds[k];
+        strategyExtras(ds, body);
         tail.push(...leftovers(ds, 'spec.strategy.dockerStrategy'));
       } else if (st.type === 'Source' && onlyKeys(st, ['type', 'sourceStrategy']) && isPlain(ss) && onlyKeys(ss.from, ['kind', 'name', 'namespace']) && ss.from.kind === 'ImageStreamTag' && argsOk(ss.env)) {
         body.push(b('bc_s2i', { IST: str(ss.from.name), NS: str(ss.from.namespace) }));
         for (const a of ss.env ?? []) body.push(b('bc_build_arg', { K: a.name, V: str(a.value) }));
         for (const k of ['from', 'env']) delete ss[k];
+        strategyExtras(ss, body);
         tail.push(...leftovers(ss, 'spec.strategy.sourceStrategy'));
       } else tail.push(field('spec.strategy', st));
     }
@@ -632,6 +669,18 @@ function importK8sDoc(doc: any, notes: Set<string>): any {
     if (res !== undefined) {
       if (onlyKeys(res, ['limits']) && onlyKeys(res.limits, ['cpu', 'memory'])) body.push(b('bc_resources', { CPU: str(res.limits.cpu), MEM: str(res.limits.memory) }));
       else tail.push(field('spec.resources', res));
+    }
+    const okH = s.successfulBuildsHistoryLimit;
+    const failH = s.failedBuildsHistoryLimit;
+    if ([okH, failH].some((x) => x !== undefined) && [okH, failH].every((x) => x === undefined || typeof x === 'number')) {
+      body.push(b('bc_history', { OK: str(take(s, 'successfulBuildsHistoryLimit')), FAIL: str(take(s, 'failedBuildsHistoryLimit')) }));
+    }
+    if (typeof s.completionDeadlineSeconds === 'number') body.push(b('bc_deadline', { S: str(take(s, 'completionDeadlineSeconds')) }));
+    if (onlyKeys(s.postCommit, ['script']) && typeof s.postCommit.script === 'string') body.push(b('bc_post_commit', { SCRIPT: take(s, 'postCommit').script }));
+    const bns = s.nodeSelector;
+    if (isPlain(bns) && Object.values(bns).every((x) => typeof x === 'string')) {
+      delete s.nodeSelector;
+      for (const [k, v] of Object.entries(bns)) body.push(b('bc_node_selector', { K: k, V: v as string }));
     }
     tail.push(...leftovers(s, 'spec'));
   } else if (kind === 'Namespace') {

@@ -21,6 +21,17 @@ OpenShift-Builds: ImageStream-Tags und BuildConfig-Quellen, -Strategien und -Tri
 | [Build-Variable … = …](#bc-build-arg) | Stapel | unter eine BuildConfig nach der Strategie |
 | [Build starten bei … Webhook-Secret …](#bc-trigger) | Stapel | unter eine BuildConfig |
 | [Build-Ressourcen CPU … RAM …](#bc-resources) | Stapel | unter eine BuildConfig |
+| [Image schieben nach … … Push-Secret …](#bc-output) | Stapel | unter eine BuildConfig |
+| [Image-Label … = …](#bc-output-label) | Stapel | unter eine BuildConfig |
+| [Basis-Image laden mit Pull-Secret …](#bc-pull-secret) | Stapel | unter eine BuildConfig nach der Strategie |
+| [ohne Cache bauen … Basis-Image immer neu laden …](#bc-strategy-opts) | Stapel | unter eine BuildConfig nach der Strategie |
+| [FROM im Dockerfile ersetzen durch … …](#bc-docker-from) | Stapel | unter eine BuildConfig nach der Strategie |
+| [Umgebungsvariable im Build … = …](#bc-strategy-env) | Stapel | unter eine BuildConfig nach der Strategie |
+| [Builds behalten: erfolgreiche … fehlgeschlagene …](#bc-history) | Stapel | unter eine BuildConfig |
+| [Build abbrechen nach … Sekunden](#bc-deadline) | Stapel | unter eine BuildConfig |
+| [nach dem Build testen mit …](#bc-post-commit) | Stapel | unter eine BuildConfig |
+| [Build nur auf Nodes mit … = …](#bc-node-selector) | Stapel | unter eine BuildConfig |
+| [Dockerfile direkt …](#bc-dockerfile) | Stapel | unter eine BuildConfig |
 
 ## Tag … von externem Image … {#is-tag}
 
@@ -276,6 +287,349 @@ spec:
     limits:
       cpu: 500m
       memory: 1Gi
+```
+
+</details>
+
+## Image schieben nach … … Push-Secret … {#bc-output}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Image schieben nach [1] [2] Push-Secret [3]</div>
+
+**Stapelblock** · Typ-ID `bc_output` · gehört unter eine BuildConfig
+
+> Ersetzt das Ziel aus dem Startblock: externe Registry (DockerImage) mit Zugangsdaten aus einem Push-Secret.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `KIND` | Auswahl | `Registry (DockerImage)` | `Registry (DockerImage)` → `DockerImage`, `ImageStreamTag` |
+| 2 | `NAME` | Text | `registry.example.com/team/demo-app:latest` |  |
+| 3 | `SECRET` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: DockerImage
+      name: registry.example.com/team/demo-app:latest
+```
+
+</details>
+
+## Image-Label … = … {#bc-output-label}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Image-Label [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `bc_output_label` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `io.openshift.build.source` |  |
+| 2 | `V` | Text | `git` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+    imageLabels:
+      - name: io.openshift.build.source
+        value: git
+```
+
+</details>
+
+## Basis-Image laden mit Pull-Secret … {#bc-pull-secret}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Basis-Image laden mit Pull-Secret [1]</div>
+
+**Stapelblock** · Typ-ID `bc_pull_secret` · gehört unter eine BuildConfig nach der Strategie
+
+> pullSecret der Strategie: Zugang zur Registry, aus der das FROM-Image im Dockerfile (bzw. der S2I-Builder) geladen wird.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Text | `registry-secret` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## ohne Cache bauen … Basis-Image immer neu laden … {#bc-strategy-opts}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>ohne Cache bauen [1] Basis-Image immer neu laden [2]</div>
+
+**Stapelblock** · Typ-ID `bc_strategy_opts` · gehört unter eine BuildConfig nach der Strategie
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NOCACHE` | Häkchen | an |  |
+| 2 | `FORCE` | Häkchen | aus |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## FROM im Dockerfile ersetzen durch … … {#bc-docker-from}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>FROM im Dockerfile ersetzen durch [1] [2]</div>
+
+**Stapelblock** · Typ-ID `bc_docker_from` · gehört unter eine BuildConfig nach der Strategie
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `KIND` | Auswahl | `Registry (DockerImage)` | `Registry (DockerImage)` → `DockerImage`, `ImageStreamTag` |
+| 2 | `NAME` | Text | `registry.access.redhat.com/ubi9/nodejs-20:latest` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## Umgebungsvariable im Build … = … {#bc-strategy-env}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Umgebungsvariable im Build [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `bc_strategy_env` · gehört unter eine BuildConfig nach der Strategie
+
+> env der Docker-Strategie (im Unterschied zu Build-Variablen = --build-arg).
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `HTTP_PROXY` |  |
+| 2 | `V` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+```
+
+</details>
+
+## Builds behalten: erfolgreiche … fehlgeschlagene … {#bc-history}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Builds behalten: erfolgreiche [1] fehlgeschlagene [2]</div>
+
+**Stapelblock** · Typ-ID `bc_history` · gehört unter eine BuildConfig
+
+> successfulBuildsHistoryLimit / failedBuildsHistoryLimit – ältere Builds werden automatisch gelöscht.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `OK` | Text | `2` |  |
+| 2 | `FAIL` | Text | `1` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+  successfulBuildsHistoryLimit: 2
+  failedBuildsHistoryLimit: 1
+```
+
+</details>
+
+## Build abbrechen nach … Sekunden {#bc-deadline}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Build abbrechen nach [1] Sekunden</div>
+
+**Stapelblock** · Typ-ID `bc_deadline` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `S` | Text | `1800` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+  completionDeadlineSeconds: 1800
+```
+
+</details>
+
+## nach dem Build testen mit … {#bc-post-commit}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>nach dem Build testen mit [1]</div>
+
+**Stapelblock** · Typ-ID `bc_post_commit` · gehört unter eine BuildConfig
+
+> postCommit: läuft im fertigen Image, bevor es geschoben wird. Fehler = Build fehlgeschlagen.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `SCRIPT` | undefined | undefined |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+  postCommit:
+    script: npm test
+```
+
+</details>
+
+## Build nur auf Nodes mit … = … {#bc-node-selector}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Build nur auf Nodes mit [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `bc_node_selector` · gehört unter eine BuildConfig
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `node-role.kubernetes.io/worker` |  |
+| 2 | `V` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+```
+
+</details>
+
+## Dockerfile direkt … {#bc-dockerfile}
+
+<div className="block-sig" style={{ '--c': '#bf4c66' }}>Dockerfile direkt [1]</div>
+
+**Stapelblock** · Typ-ID `bc_dockerfile` · gehört unter eine BuildConfig
+
+> Dockerfile direkt in der BuildConfig (source.dockerfile) statt aus dem Git-Repo.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `TEXT` | undefined | undefined |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: demo
+spec:
+  runPolicy: Serial
+  source:
+    dockerfile: |
+      FROM nginx:1.27
+      COPY . /usr/share/nginx/html
+    type: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: demo:latest
 ```
 
 </details>

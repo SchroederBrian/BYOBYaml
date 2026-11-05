@@ -1,0 +1,67 @@
+# BuildConfig edge cases: external registry output, pull/push secrets, history limits
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: n8n-build
+spec:
+  runPolicy: Serial
+  successfulBuildsHistoryLimit: 2
+  failedBuildsHistoryLimit: 1
+  completionDeadlineSeconds: 1800
+  source:
+    type: Git
+    git:
+      uri: https://git.example.com/automation/n8n.git
+      ref: main
+    sourceSecret:
+      name: git-credentials
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+      pullSecret:
+        name: zar-registry-secret
+      noCache: true
+      env:
+        - name: HTTP_PROXY
+          value: http://proxy.example.com:3128
+      buildArgs:
+        - name: N8N_VERSION
+          value: stable
+  output:
+    to:
+      kind: DockerImage
+      name: zar.entw.bund.drv/bund-tktools-docker-default-local/n8nio/n8n:stable
+    pushSecret:
+      name: zar-registry-secret
+    imageLabels:
+      - name: maintainer
+        value: tktools
+  postCommit:
+    script: n8n --version
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  triggers:
+    - type: ConfigChange
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: inline-build
+spec:
+  source:
+    type: Dockerfile
+    dockerfile: |
+      FROM nginx:1.27
+      COPY index.html /usr/share/nginx/html/
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: DockerImage
+        name: registry.example.com/base/nginx:1.27
+      forcePull: true
+  output:
+    to:
+      kind: ImageStreamTag
+      name: inline-build:latest

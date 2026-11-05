@@ -240,6 +240,15 @@ export const BUILTIN_SNIPPETS: BuiltinSnippet[] = [
     b('bc_trigger', { T: 'ConfigChange', SECRET: '' }),
     b('bc_trigger', { T: 'ImageChange', SECRET: '' }),
   ]),
+  S('k8s', 'Build & Skalierung', 'BuildConfig → externe Registry', 'Docker-Build mit Pull-/Push-Secret und Verlaufs-Limit', [
+    b('k8s_buildconfig', { NAME: 'app-build', OUT: '', RUN: 'Serial' }),
+    b('bc_git', { URI: 'https://git.example.com/team/app.git', REF: 'main', DIR: '' }),
+    b('bc_docker', { FILE: 'Dockerfile' }),
+    b('bc_pull_secret', { S: 'registry-secret' }),
+    b('bc_output', { KIND: 'DockerImage', NAME: 'registry.example.com/team/app:latest', SECRET: 'registry-secret' }),
+    b('bc_history', { OK: '2', FAIL: '1' }),
+    b('bc_trigger', { T: 'ConfigChange', SECRET: '' }),
+  ]),
   S('k8s', 'Build & Skalierung', 'Image-Trigger', 'Deployment folgt ImageStreamTag (unter Deployment)', [b('meta_image_trigger', { IST: 'app:latest', CONT: 'app' })]),
   S('k8s', 'Build & Skalierung', 'Autoscaler CPU + RAM', '2–10 Pods, ruhiges Herunterskalieren', [
     b('k8s_hpa', { NAME: 'web', TARGET: 'web', MIN: 2, MAX: 10 }),

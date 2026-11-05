@@ -8,7 +8,7 @@ sidebar_position: 2
 
 # Mitgelieferte Vorlagen
 
-BYOBYaml bringt 43 Vorlagen mit. Du findest sie im Editor unter **Vorlagen** in der Palette. Zieh eine Vorlage auf die Fläche oder direkt an die passende Stelle in einem Stapel.
+BYOBYaml bringt 44 Vorlagen mit. Du findest sie im Editor unter **Vorlagen** in der Palette. Zieh eine Vorlage auf die Fläche oder direkt an die passende Stelle in einem Stapel.
 
 ## Docker Compose
 
@@ -1369,6 +1369,53 @@ spec:
     - type: ConfigChange
     - type: ImageChange
       imageChange: {}
+```
+
+</details>
+
+#### BuildConfig → externe Registry
+
+Docker-Build mit Pull-/Push-Secret und Verlaufs-Limit
+
+- `BuildConfig app-build → ImageStreamTag Ablauf Serial`
+- `Git Quelle https://git.example.com/team/app.git Branch main Unterordner `
+- `Docker-Strategie Dockerfile Dockerfile`
+- `Basis-Image laden mit Pull-Secret registry-secret`
+- `Image schieben nach Registry (DockerImage) registry.example.com/team/app:latest Push-Secret registry-secret`
+- `Builds behalten: erfolgreiche 2 fehlgeschlagene 1`
+- `Build starten bei Config-Änderung Webhook-Secret `
+
+<details>
+<summary>Erzeugtes YAML</summary>
+
+```yaml
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: app-build
+spec:
+  runPolicy: Serial
+  source:
+    type: Git
+    git:
+      uri: https://git.example.com/team/app.git
+      ref: main
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+      pullSecret:
+        name: registry-secret
+  output:
+    to:
+      kind: DockerImage
+      name: registry.example.com/team/app:latest
+    pushSecret:
+      name: registry-secret
+  triggers:
+    - type: ConfigChange
+  successfulBuildsHistoryLimit: 2
+  failedBuildsHistoryLimit: 1
 ```
 
 </details>
