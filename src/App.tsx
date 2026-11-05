@@ -58,6 +58,8 @@ export default function App() {
   const [dbFile, setDbFile] = useState('');
   const [renaming, setRenaming] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  // phones: one pane at a time (files / blocks / inspector), switched via the bottom bar
+  const [mobileView, setMobileView] = useState<'files' | 'canvas' | 'inspector'>('canvas');
 
   const editor = useRef<BlockEditorHandle>(null);
   const projectRef = useRef(project);
@@ -164,6 +166,7 @@ export default function App() {
     const f = emptyFile(kind, project.files.map((x) => x.name));
     patch({ files: [...project.files, f] });
     setActiveId(f.id);
+    setMobileView('canvas');
   };
   const duplicateFile = (f: ProjectFile) => {
     if (!project) return;
@@ -393,7 +396,7 @@ export default function App() {
   );
 
   return (
-    <div className="app">
+    <div className={`app mv-${mobileView}`}>
       {/* ================= title bar ================= */}
       <header className="titlebar">
         <div className="brand" title="Build Your Own Blocks → YAML">
@@ -511,7 +514,7 @@ export default function App() {
           </div>
           <ul className="file-list">
             {project?.files.map((f) => (
-              <li key={f.id} className={f.id === active?.id ? 'active' : ''} onClick={() => setActiveId(f.id)} onDoubleClick={() => setRenaming(f.id)}>
+              <li key={f.id} className={f.id === active?.id ? 'active' : ''} onClick={() => (setActiveId(f.id), setMobileView('canvas'))} onDoubleClick={() => setRenaming(f.id)}>
                 <span className={`kind kind-${f.kind}`}>{f.kind === 'compose' ? 'DC' : 'K8'}</span>
                 {renaming === f.id ? (
                   <input
@@ -623,6 +626,23 @@ export default function App() {
           {tab === 'snippets' && <SnippetsPanel snippets={snippets} onRename={renameSnippet} onDelete={deleteSnippet} />}
         </aside>
       </div>
+
+      {/* ================= mobile bottom bar (hidden on desktop) ================= */}
+      <nav className="mobile-nav" aria-label="Ansicht">
+        <button className={mobileView === 'files' ? 'on' : ''} onClick={() => setMobileView('files')}>
+          <Icon name="folder" size={18} />
+          <span>Dateien</span>
+        </button>
+        <button className={mobileView === 'canvas' ? 'on' : ''} onClick={() => setMobileView('canvas')}>
+          <Icon name="layers" size={18} />
+          <span>Blöcke</span>
+        </button>
+        <button className={mobileView === 'inspector' ? 'on' : ''} onClick={() => setMobileView('inspector')}>
+          <Icon name="code" size={18} />
+          <span>YAML</span>
+          {result.warnings.length > 0 && <span className="badge warn">{result.warnings.length}</span>}
+        </button>
+      </nav>
 
       {/* ================= status bar ================= */}
       <footer className="statusbar">

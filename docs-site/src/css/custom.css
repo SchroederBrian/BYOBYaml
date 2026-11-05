@@ -175,3 +175,32 @@ kbd {
   font-weight: 700;
   color: #ffcc4d;
 }
+
+/* ---------- mobile only (desktop unchanged) ---------- */
+@media (max-width: 996px) {
+  .markdown table {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .markdown h1 {
+    font-size: 1.6rem;
+  }
+  .markdown h2 {
+    font-size: 1.25rem;
+  }
+  .block-sig {
+    white-space: normal;
+    word-break: break-word;
+  }
+  .blk-row .blk {
+    white-space: normal;
+  }
+  .blk {
+    white-space: normal;
+  }
+  .markdown img {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+}

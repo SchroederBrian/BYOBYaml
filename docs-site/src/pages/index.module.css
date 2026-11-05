@@ -107,3 +107,32 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 600px) {
+  .main {
+    padding: 2rem 1rem 3rem;
+  }
+  .heroText h1 {
+    font-size: 2.1rem;
+  }
+  .lead {
+    font-size: 1rem;
+  }
+  .cta :global(.button) {
+    flex: 1 1 100%;
+  }
+  .demo {
+    grid-template-columns: 1fr;
+  }
+  .yaml {
+    border-left: 0;
+    border-top: 1px solid var(--ifm-toc-border-color);
+    max-height: 220px;
+  }
+  .facts {
+    margin-top: 3rem;
+  }
+  .facts > div {
+    padding-right: 0;
+  }
+}

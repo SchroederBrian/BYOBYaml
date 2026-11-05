@@ -34,8 +34,10 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   editorHooks.onSaveSnippet = onSaveSnippet;
   editorHooks.userSnippets = () => snippetsRef.current;
 
+  // never report (and thereby save) a workspace that has not been loaded with a file yet
+  const loaded = useRef(false);
   const emit = () => {
-    if (ws.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current));
+    if (ws.current && loaded.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current));
   };
 
   useEffect(() => {
@@ -48,7 +50,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       trashcan: true,
       sounds: false,
       grid: { spacing: 24, length: 1, colour: '#232833', snap: true },
-      zoom: { controls: true, wheel: true, startScale: 0.9, maxScale: 2, minScale: 0.35, scaleSpeed: 1.12 },
+      zoom: { controls: true, wheel: true, startScale: window.matchMedia('(max-width: 820px)').matches ? 0.7 : 0.9, maxScale: 2, minScale: 0.35, scaleSpeed: 1.12 },
       move: { scrollbars: true, drag: true, wheel: false },
     });
     ws.current = w;
@@ -100,6 +102,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       } finally {
         Blockly.Events.enable();
         loading.current = false;
+        loaded.current = true;
       }
       emit();
       // place first stack top-left next to the toolbox
