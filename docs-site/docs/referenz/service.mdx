@@ -19,27 +19,41 @@ Optionen eines Compose-Services. Diese Blöcke gehören **in** einen `Service`-K
 | [Port Host … → Container … …](#svc-port) | Stapel | in einen "Service"-Block |
 | [nur intern freigeben Port …](#svc-expose) | Stapel | in einen "Service"-Block |
 | [Variable … = …](#svc-env) | Stapel | in einen "Service"-Block |
-| [Variablen aus Datei …](#svc-env-file) | Stapel | in einen "Service"-Block |
+| [Variablen aus Datei … Pflicht …](#svc-env-file) | Stapel | in einen "Service"-Block |
 | [Volume … → … nur lesen …](#svc-volume) | Stapel | in einen "Service"-Block |
-| [wartet auf … bis …](#svc-depends) | Stapel | in einen "Service"-Block |
+| [wartet auf … bis … neu starten mit … Pflicht …](#svc-depends) | Stapel | in einen "Service"-Block |
 | [Neustart …](#svc-restart) | Stapel | in einen "Service"-Block |
 | [Command …](#svc-command) | Stapel | in einen "Service"-Block |
 | [Entrypoint …](#svc-entrypoint) | Stapel | in einen "Service"-Block |
-| [im Netzwerk …](#svc-network) | Stapel | in einen "Service"-Block |
-| [Healthcheck … … alle … Timeout … Versuche … Startphase …](#svc-healthcheck) | Stapel | in einen "Service"-Block |
+| [im Netzwerk … Aliase … feste IP …](#svc-network) | Stapel | in einen "Service"-Block |
+| [Healthcheck … … alle … Timeout … Versuche … Startphase … Start-Intervall …](#svc-healthcheck) | Stapel | in einen "Service"-Block |
 | [Healthcheck ausschalten](#svc-healthcheck-off) | Stapel | in einen "Service"-Block |
 | [Label … = …](#svc-label) | Stapel | in einen "Service"-Block |
-| [Limit CPU … RAM …](#svc-resources) | Stapel | in einen "Service"-Block |
+| [… CPU … RAM …](#svc-resources) | Stapel | in einen "Service"-Block |
 | [Replicas …](#svc-replicas) | Stapel | in einen "Service"-Block |
 | [Option … = …](#svc-option) | Stapel | in einen "Service"-Block |
 | [schalte … ein](#svc-flag) | Stapel | in einen "Service"-Block |
 | [Host … zeigt auf …](#svc-extra-host) | Stapel | in einen "Service"-Block |
-| [nutzt Secret …](#svc-secret) | Stapel | in einen "Service"-Block |
+| [nutzt Secret … als … Rechte …](#svc-secret) | Stapel | in einen "Service"-Block |
 | [Logging … max. Größe … Dateien …](#svc-logging) | Stapel | in einen "Service"-Block |
 | [nur im Profil …](#svc-profile) | Stapel | in einen "Service"-Block |
 | [Grenzen RAM … CPUs … Prozesse …](#svc-limits) | Stapel | in einen "Service"-Block |
 | [Capability … …](#svc-cap) | Stapel | in einen "Service"-Block |
 | [Security-Option …](#svc-security-opt) | Stapel | in einen "Service"-Block |
+| [Variable … vom Host übernehmen](#svc-env-pass) | Stapel | in einen "Service"-Block |
+| [tmpfs … Größe …](#svc-tmpfs) | Stapel | in einen "Service"-Block |
+| [nutzt Config … als … Rechte …](#svc-config) | Stapel | in einen "Service"-Block |
+| [Ulimit … soft … hard …](#svc-ulimit) | Stapel | in einen "Service"-Block |
+| [Sysctl … = …](#svc-sysctl) | Stapel | in einen "Service"-Block |
+| [Gerät …](#svc-device) | Stapel | in einen "Service"-Block |
+| [DNS-Server …](#svc-dns) | Stapel | in einen "Service"-Block |
+| [Build-Stage …](#svc-build-target) | Stapel | in einen "Service"-Block |
+| [Build-Cache von …](#svc-build-cache) | Stapel | in einen "Service"-Block |
+| [GPU Treiber … Anzahl …](#svc-gpu) | Stapel | in einen "Service"-Block |
+| [Swarm-Neustart … max. Versuche … Pause …](#svc-restart-policy) | Stapel | in einen "Service"-Block |
+| [Neustart bei Fehler, höchstens … mal](#svc-restart-max) | Stapel | in einen "Service"-Block |
+| [erweitert Service … aus Datei …](#svc-extends) | Stapel | in einen "Service"-Block |
+| [Watch … Ordner … → …](#svc-watch) | Stapel | in einen "Service"-Block |
 
 ## Image … {#svc-image}
 
@@ -80,7 +94,7 @@ services:
 services:
   web:
     image: nginx:latest
-    build: .
+    build: "."
 ```
 
 </details>
@@ -104,7 +118,7 @@ services:
   web:
     image: nginx:latest
     build:
-      context: .
+      context: "."
       args:
         NODE_ENV: production
 ```
@@ -183,15 +197,16 @@ services:
 
 </details>
 
-## Variablen aus Datei … {#svc-env-file}
+## Variablen aus Datei … Pflicht … {#svc-env-file}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>Variablen aus Datei [1]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Variablen aus Datei [1] Pflicht [2]</div>
 
 **Stapelblock** · Typ-ID `svc_env_file` · gehört in einen "Service"-Block
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `FILE` | Text | `.env` |  |
+| 2 | `REQ` | Häkchen | an |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -231,16 +246,20 @@ services:
 
 </details>
 
-## wartet auf … bis … {#svc-depends}
+## wartet auf … bis … neu starten mit … Pflicht … {#svc-depends}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>wartet auf [1] bis [2]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>wartet auf [1] bis [2] neu starten mit [3] Pflicht [4]</div>
 
 **Stapelblock** · Typ-ID `svc_depends` · gehört in einen "Service"-Block
+
+> "neu starten mit": Service wird neu gestartet, wenn die Abhängigkeit aktualisiert wird. "Pflicht" aus: Service startet auch ohne sie.
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `NAME` | Text | `db` |  |
 | 2 | `COND` | Auswahl | `gestartet` | `gestartet` → `service_started`, `gesund` → `service_healthy`, `fertig` → `service_completed_successfully` |
+| 3 | `RESTART` | Häkchen | aus |  |
+| 4 | `REQUIRED` | Häkchen | an |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -286,7 +305,7 @@ services:
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
-| 1 | `CMD` | Text | `npm start` |  |
+| 1 | `CMD` | undefined | undefined |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -325,15 +344,19 @@ services:
 
 </details>
 
-## im Netzwerk … {#svc-network}
+## im Netzwerk … Aliase … feste IP … {#svc-network}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>im Netzwerk [1]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>im Netzwerk [1] Aliase [2] feste IP [3]</div>
 
 **Stapelblock** · Typ-ID `svc_network` · gehört in einen "Service"-Block
+
+> Aliase mit Komma trennen. Sobald Aliase oder eine IP gesetzt sind, wird networks: als Map geschrieben.
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `NAME` | Text | `backend` |  |
+| 2 | `ALIASES` | Text | *(leer)* |  |
+| 3 | `IP` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -348,9 +371,9 @@ services:
 
 </details>
 
-## Healthcheck … … alle … Timeout … Versuche … Startphase … {#svc-healthcheck}
+## Healthcheck … … alle … Timeout … Versuche … Startphase … Start-Intervall … {#svc-healthcheck}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>Healthcheck [1] [2] alle [3] Timeout [4] Versuche [5] Startphase [6]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Healthcheck [1] [2] alle [3] Timeout [4] Versuche [5] Startphase [6] Start-Intervall [7]</div>
 
 **Stapelblock** · Typ-ID `svc_healthcheck` · gehört in einen "Service"-Block
 
@@ -362,8 +385,9 @@ services:
 | 2 | `CMD` | Text | `curl -f http://localhost/ || exit 1` |  |
 | 3 | `INT` | Text | `30s` |  |
 | 4 | `TO` | Text | `5s` |  |
-| 5 | `RET` | Zahl | `3` |  |
+| 5 | `RET` | Text | `3` |  |
 | 6 | `START` | Text | *(leer)* |  |
+| 7 | `SINT` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -428,16 +452,17 @@ services:
 
 </details>
 
-## Limit CPU … RAM … {#svc-resources}
+## … CPU … RAM … {#svc-resources}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>Limit CPU [1] RAM [2]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>[1] CPU [2] RAM [3]</div>
 
 **Stapelblock** · Typ-ID `svc_resources` · gehört in einen "Service"-Block
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
-| 1 | `CPU` | Text | `0.5` |  |
-| 2 | `MEM` | Text | `512M` |  |
+| 1 | `KIND` | Auswahl | `Limit` | `Limit` → `limits`, `Reservierung` → `reservations` |
+| 2 | `CPU` | Text | `0.5` |  |
+| 3 | `MEM` | Text | `512M` |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -547,15 +572,19 @@ services:
 
 </details>
 
-## nutzt Secret … {#svc-secret}
+## nutzt Secret … als … Rechte … {#svc-secret}
 
-<div className="block-sig" style={{ '--c': '#7a68d4' }}>nutzt Secret [1]</div>
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>nutzt Secret [1] als [2] Rechte [3]</div>
 
 **Stapelblock** · Typ-ID `svc_secret` · gehört in einen "Service"-Block
+
+> Ziel und Rechte (z. B. 0440) sind optional. Ohne sie wird die Kurzform geschrieben.
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `NAME` | Text | `db_password` |  |
+| 2 | `TARGET` | Text | *(leer)* |  |
+| 3 | `MODE` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -690,6 +719,367 @@ services:
     image: nginx:latest
     security_opt:
       - no-new-privileges:true
+```
+
+</details>
+
+## Variable … vom Host übernehmen {#svc-env-pass}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Variable [1] vom Host übernehmen</div>
+
+**Stapelblock** · Typ-ID `svc_env_pass` · gehört in einen "Service"-Block
+
+> environment: KEY ohne Wert – Docker übernimmt den Wert aus der Shell/.env.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `API_KEY` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    environment:
+      API_KEY:
+```
+
+</details>
+
+## tmpfs … Größe … {#svc-tmpfs}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>tmpfs [1] Größe [2]</div>
+
+**Stapelblock** · Typ-ID `svc_tmpfs` · gehört in einen "Service"-Block
+
+> RAM-Dateisystem. Ohne Größe: tmpfs:-Liste, mit Größe: volumes-Eintrag vom Typ tmpfs.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PATH` | Text | `/tmp` |  |
+| 2 | `SIZE` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    tmpfs:
+      - /tmp
+```
+
+</details>
+
+## nutzt Config … als … Rechte … {#svc-config}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>nutzt Config [1] als [2] Rechte [3]</div>
+
+**Stapelblock** · Typ-ID `svc_config` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `app_config` |  |
+| 2 | `TARGET` | Text | `/etc/app/config.yml` |  |
+| 3 | `MODE` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    configs:
+      - source: app_config
+        target: /etc/app/config.yml
+```
+
+</details>
+
+## Ulimit … soft … hard … {#svc-ulimit}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Ulimit [1] soft [2] hard [3]</div>
+
+**Stapelblock** · Typ-ID `svc_ulimit` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `nofile` |  |
+| 2 | `SOFT` | Text | `65536` |  |
+| 3 | `HARD` | Text | `65536` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+```
+
+</details>
+
+## Sysctl … = … {#svc-sysctl}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Sysctl [1] = [2]</div>
+
+**Stapelblock** · Typ-ID `svc_sysctl` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `net.core.somaxconn` |  |
+| 2 | `V` | Text | `1024` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    sysctls:
+      net.core.somaxconn: 1024
+```
+
+</details>
+
+## Gerät … {#svc-device}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Gerät [1]</div>
+
+**Stapelblock** · Typ-ID `svc_device` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `DEV` | Text | `/dev/ttyUSB0:/dev/ttyUSB0` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+```
+
+</details>
+
+## DNS-Server … {#svc-dns}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>DNS-Server [1]</div>
+
+**Stapelblock** · Typ-ID `svc_dns` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `IP` | Text | `1.1.1.1` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    dns:
+      - 1.1.1.1
+```
+
+</details>
+
+## Build-Stage … {#svc-build-target}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Build-Stage [1]</div>
+
+**Stapelblock** · Typ-ID `svc_build_target` · gehört in einen "Service"-Block
+
+> Multi-Stage-Builds: baut nur bis zu dieser Stage (build.target). Nach dem Build-Block setzen.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `TARGET` | Text | `production` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    build:
+      context: "."
+      target: production
+```
+
+</details>
+
+## Build-Cache von … {#svc-build-cache}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Build-Cache von [1]</div>
+
+**Stapelblock** · Typ-ID `svc_build_cache` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `FROM` | Text | `type=registry,ref=ghcr.io/example/app:cache` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    build:
+      context: "."
+      cache_from:
+        - type=registry,ref=ghcr.io/example/app:cache
+```
+
+</details>
+
+## GPU Treiber … Anzahl … {#svc-gpu}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>GPU Treiber [1] Anzahl [2]</div>
+
+**Stapelblock** · Typ-ID `svc_gpu` · gehört in einen "Service"-Block
+
+> GPU-Reservierung (deploy.resources.reservations.devices). Anzahl "all" für alle GPUs.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `DRIVER` | Text | `nvidia` |  |
+| 2 | `COUNT` | Text | `1` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities:
+                - gpu
+```
+
+</details>
+
+## Swarm-Neustart … max. Versuche … Pause … {#svc-restart-policy}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Swarm-Neustart [1] max. Versuche [2] Pause [3]</div>
+
+**Stapelblock** · Typ-ID `svc_restart_policy` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `COND` | Auswahl | `on-failure` | `on-failure`, `any`, `none` |
+| 2 | `MAX` | Text | *(leer)* |  |
+| 3 | `DELAY` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+```
+
+</details>
+
+## Neustart bei Fehler, höchstens … mal {#svc-restart-max}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Neustart bei Fehler, höchstens [1] mal</div>
+
+**Stapelblock** · Typ-ID `svc_restart_max` · gehört in einen "Service"-Block
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `N` | Zahl | `5` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    restart: on-failure:5
+```
+
+</details>
+
+## erweitert Service … aus Datei … {#svc-extends}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>erweitert Service [1] aus Datei [2]</div>
+
+**Stapelblock** · Typ-ID `svc_extends` · gehört in einen "Service"-Block
+
+> Übernimmt die Einstellungen eines anderen Services (extends:). Datei leer = gleiche Datei.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `SVC` | Text | `base` |  |
+| 2 | `FILE` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    extends:
+      service: base
+```
+
+</details>
+
+## Watch … Ordner … → … {#svc-watch}
+
+<div className="block-sig" style={{ '--c': '#7a68d4' }}>Watch [1] Ordner [2] → [3]</div>
+
+**Stapelblock** · Typ-ID `svc_watch` · gehört in einen "Service"-Block
+
+> docker compose watch (develop.watch).
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `ACTION` | Auswahl | `sync` | `sync`, `rebuild`, `sync+restart`, `sync+exec`, `restart` |
+| 2 | `PATH` | Text | `./src` |  |
+| 3 | `TARGET` | Text | `/app/src` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+services:
+  web:
+    image: nginx:latest
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
 ```
 
 </details>

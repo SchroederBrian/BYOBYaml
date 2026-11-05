@@ -85,12 +85,12 @@ Ports schreibt BYOBYaml immer in Anführungszeichen (`"8080:80"`). Sonst kann YA
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_PASSWORD = change-me</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable POSTGRES_DB = app</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Volume pgdata → /var/lib/postgresql/data nur lesen ☐</span></div>
-<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Healthcheck undefined pg_isready -U app alle 10s Timeout 5s Versuche 5 Startphase </span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Healthcheck undefined pg_isready -U app alle 10s Timeout 5s Versuche 5 Startphase Start-Intervall </span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Service app Image </span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Build Ordner . Dockerfile Dockerfile</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Port Host 3000 → Container 3000 tcp</span></div>
 <div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>Variable DATABASE_URL = postgres://app:change-me@db:5432/app</span></div>
-<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>wartet auf db bis gesund</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#7a68d4' }}>wartet auf db bis gesund neu starten mit ☐ Pflicht ☐</span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3f7fd8' }}>Volume pgdata Treiber Standard extern ☐ echter Name </span></div>
 </div>
 
@@ -115,7 +115,7 @@ services:
       timeout: 5s
       retries: 5
   app:
-    build: .
+    build: "."
     ports:
       - "3000:3000"
     environment:
@@ -185,8 +185,8 @@ services:
 <div className="blk-gap" />
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Deployment app Replicas 1</span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Container app Image registry.example.com/app:1.0</span></div>
-<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>alle Variablen aus ConfigMap app-config</span></div>
-<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Variable DB_PASSWORD aus Secret app-secret Schlüssel DB_PASSWORD</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>alle Variablen aus ConfigMap app-config Präfix optional ☐</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Variable DB_PASSWORD aus Secret app-secret Schlüssel DB_PASSWORD optional ☐</span></div>
 </div>
 
 **Ergebnis:**
@@ -258,7 +258,7 @@ spec:
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Deployment app Replicas 1</span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Volume data aus PVC app-data</span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#c9702a' }}>Container app Image registry.example.com/app:1.0</span></div>
-<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Volume data einhängen in /var/lib/app nur lesen ☐</span></div>
+<div className="blk-row" style={{ marginLeft: '1.6rem' }}><span className="blk" style={{ '--c': '#2b8fa8' }}>Volume data einhängen in /var/lib/app nur lesen ☐ Unterpfad </span></div>
 </div>
 
 **Ergebnis:**
@@ -321,8 +321,8 @@ Bei `ReadWriteOnce` kann nur ein Node das Volume einhängen. Für mehrere Replic
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk blk-hat" style={{ '--c': '#c08a1e' }}>Ingress shop Klasse nginx</span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>cert-manager Issuer letsencrypt</span></div>
 <div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>TLS für shop.example.com mit Secret shop-tls</span></div>
-<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Regel Host shop.example.com Pfad / → Service frontend Port 80</span></div>
-<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Regel Host shop.example.com Pfad /api → Service api Port http</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Regel Host shop.example.com Pfad / → Service frontend Port 80 Abgleich undefined</span></div>
+<div className="blk-row" style={{ marginLeft: '0rem' }}><span className="blk" style={{ '--c': '#3a9558' }}>Regel Host shop.example.com Pfad /api → Service api Port http Abgleich undefined</span></div>
 </div>
 
 **Ergebnis:**

@@ -7,7 +7,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { registerBlocks } from '../src/blocks/register';
 import { generate } from '../src/blocks/generator';
-import { importYaml } from '../src/importer';
+import { importYaml, parseYamlDocs } from '../src/importer';
 
 registerBlocks();
 const dir = process.argv[2] ?? join(import.meta.dir, 'samples');
@@ -53,8 +53,8 @@ for (const name of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f))) {
   Blockly.serialization.workspaces.load(file.state, ws);
   const res = generate(ws, {}, { passThroughUnknownVars: file.kind === 'compose' });
   ws.dispose();
-  const src = YAML.parseAllDocuments(text, { merge: true }).map((d) => d.toJS()).flatMap((d: any) => (d?.kind === 'List' ? d.items : [d]));
-  const out = YAML.parseAllDocuments(res.yaml).map((d) => d.toJS());
+  const src = parseYamlDocs(text);
+  const out = parseYamlDocs(res.yaml);
   const all = src.reduce((n: number, d: any) => n + leaves(d), 0);
   const ex = extras(file.state);
   const exLeaves = ex.reduce((n, e) => n + extraLeaves(e), 0);

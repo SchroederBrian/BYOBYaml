@@ -1,0 +1,167 @@
+# Edge cases for Kubernetes / OpenShift
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-files
+data:
+  nginx.conf: |
+    server {
+      listen 8080;
+      location / { root /usr/share/nginx/html; }
+    }
+  startup.sh: |-
+    #!/bin/sh
+    echo "ready"
+  folded: >
+    this is a long line
+    folded into one
+  plain: "no"
+  port: "8080"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels:
+    app: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: api
+          effect: NoSchedule
+      containers:
+        - name: api
+          image: registry.example.com/api:1.0
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo start
+              exec ./api
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MEM_LIMIT
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+            - name: DB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db
+                  key: url
+                  optional: true
+          envFrom:
+            - prefix: APP_
+              configMapRef:
+                name: app-config
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: metrics
+          volumeMounts:
+            - name: files
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: host-logs
+              mountPath: /var/log/host
+              readOnly: true
+          livenessProbe:
+            exec:
+              command: ["cat", "/tmp/healthy"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+              scheme: HTTPS
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5"]
+          securityContext:
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+      volumes:
+        - name: files
+          configMap:
+            name: app-files
+            defaultMode: 0755
+            items:
+              - key: nginx.conf
+                path: nginx.conf
+        - name: host-logs
+          hostPath:
+            path: /var/log
+            type: Directory
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-headless
+spec:
+  clusterIP: None
+  selector:
+    app: api
+  ports:
+    - name: http
+      port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+spec:
+  type: ExternalName
+  externalName: db.example.com
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api
+spec:
+  rules:
+    - host: api.example.com
+      http:
+        paths:
+          - path: /v1
+            pathType: Exact
+            backend:
+              service:
+                name: api
+                port:
+                  name: http
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls
+type: kubernetes.io/tls
+stringData:
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIIBszCCAVmgAwIBAgIUQ
+    -----END CERTIFICATE-----
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    MIGHAgEAMBMGByqGSM49
+    -----END PRIVATE KEY-----

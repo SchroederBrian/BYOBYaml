@@ -17,6 +17,7 @@ Notausgänge für alles ohne eigenen Block. Sie wirken auf das **aktuelle Objekt
 | [zu Liste … hinzufügen …](#x-list) | Stapel | überall |
 | [YAML einmischen …](#x-yaml) | Stapel | überall |
 | [Notiz …](#x-comment) | Stapel | überall |
+| [Template-Parameter … Standard … Pflicht … erzeugen aus … Beschreibung …](#tpl-param) | Stapel | unter ein OpenShift Template |
 
 ## Feld … = … {#x-field}
 
@@ -88,7 +89,7 @@ spec:
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
-| 1 | `Y` | Text | `{spec: {revisionHistoryLimit: 3}}` |  |
+| 1 | `Y` | undefined | undefined |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -115,6 +116,34 @@ spec:
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `TXT` | Text | `Hier kommt noch was hin` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: example.io/v1
+kind: Example
+metadata:
+  name: demo
+```
+
+</details>
+
+## Template-Parameter … Standard … Pflicht … erzeugen aus … Beschreibung … {#tpl-param}
+
+<div className="block-sig" style={{ '--c': '#5f6b82' }}>Template-Parameter [1] Standard [2] Pflicht [3] erzeugen aus [4] Beschreibung [5]</div>
+
+**Stapelblock** · Typ-ID `tpl_param` · gehört unter ein OpenShift Template
+
+> "erzeugen aus": Regex für generierte Werte, z. B. [a-zA-Z0-9]&#123;16&#125; für Passwörter.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `APP_NAME` |  |
+| 2 | `VALUE` | Text | *(leer)* |  |
+| 3 | `REQ` | Häkchen | aus |  |
+| 4 | `FROM` | Text | *(leer)* |  |
+| 5 | `DESC` | Text | *(leer)* |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>

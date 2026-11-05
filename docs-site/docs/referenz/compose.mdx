@@ -17,7 +17,12 @@ Grundgerüst einer `docker-compose.yml`: der Startblock, Services sowie projektw
 | [Service … Image …](#compose-service) | Klammer | unter einen "Docker Compose"-Startblock |
 | [Volume … Treiber … extern … echter Name …](#compose-volume) | Stapel | unter einen "Docker Compose"-Startblock |
 | [Netzwerk … Treiber … extern … intern (ohne Internet) …](#compose-network) | Stapel | unter einen "Docker Compose"-Startblock |
-| [Secret … aus Datei …](#compose-secret) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Secret … aus … …](#compose-secret) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Config … aus … …](#compose-config) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Include Datei …](#compose-include) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Volume … Treiber-Option … = …](#compose-volume-opt) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Netzwerk … Subnetz … Gateway …](#compose-network-subnet) | Stapel | unter einen "Docker Compose"-Startblock |
+| [Erweiterungsfeld x-… = …](#compose-extension) | Stapel | unter einen "Docker Compose"-Startblock |
 
 ## Docker Compose · Projekt … Version … {#compose-file}
 
@@ -113,16 +118,17 @@ networks:
 
 </details>
 
-## Secret … aus Datei … {#compose-secret}
+## Secret … aus … … {#compose-secret}
 
-<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Secret [1] aus Datei [2]</div>
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Secret [1] aus [2] [3]</div>
 
 **Stapelblock** · Typ-ID `compose_secret` · gehört unter einen "Docker Compose"-Startblock
 
 | # | Feld | Art | Standard | Auswahl |
 | --- | --- | --- | --- | --- |
 | 1 | `NAME` | Text | `db_password` |  |
-| 2 | `FILE` | Text | `./secrets/db_password.txt` |  |
+| 2 | `SRC` | Auswahl | `Datei` | `Datei` → `file`, `Umgebungsvariable` → `environment`, `extern` → `external` |
+| 3 | `FILE` | Text | `./secrets/db_password.txt` |  |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -131,6 +137,127 @@ networks:
 secrets:
   db_password:
     file: ./secrets/db_password.txt
+```
+
+</details>
+
+## Config … aus … … {#compose-config}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Config [1] aus [2] [3]</div>
+
+**Stapelblock** · Typ-ID `compose_config` · gehört unter einen "Docker Compose"-Startblock
+
+> Top-Level configs: – Dateien, die Services mit "nutzt Config" einbinden.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `app_config` |  |
+| 2 | `SRC` | Auswahl | `Datei` | `Datei` → `file`, `Inhalt` → `content`, `Umgebungsvariable` → `environment`, `extern` → `external` |
+| 3 | `VAL` | undefined | undefined |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+configs:
+  app_config:
+    file: ./config.yml
+```
+
+</details>
+
+## Include Datei … {#compose-include}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Include Datei [1]</div>
+
+**Stapelblock** · Typ-ID `compose_include` · gehört unter einen "Docker Compose"-Startblock
+
+> Bindet eine weitere Compose-Datei ein (include:).
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `PATH` | Text | `./other/compose.yaml` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+include:
+  - ./other/compose.yaml
+```
+
+</details>
+
+## Volume … Treiber-Option … = … {#compose-volume-opt}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Volume [1] Treiber-Option [2] = [3]</div>
+
+**Stapelblock** · Typ-ID `compose_volume_opt` · gehört unter einen "Docker Compose"-Startblock
+
+> driver_opts eines Volumes, z. B. type=none, o=bind, device=/srv/data für Bind-Volumes oder NFS-Optionen.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `VOL` | Text | `data` |  |
+| 2 | `K` | Text | `type` |  |
+| 3 | `V` | Text | `none` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+volumes:
+  data:
+    driver_opts:
+      type: none
+```
+
+</details>
+
+## Netzwerk … Subnetz … Gateway … {#compose-network-subnet}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Netzwerk [1] Subnetz [2] Gateway [3]</div>
+
+**Stapelblock** · Typ-ID `compose_network_subnet` · gehört unter einen "Docker Compose"-Startblock
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NET` | Text | `backend` |  |
+| 2 | `SUBNET` | Text | `172.20.0.0/24` |  |
+| 3 | `GW` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+```
+
+</details>
+
+## Erweiterungsfeld x-… = … {#compose-extension}
+
+<div className="block-sig" style={{ '--c': '#3f7fd8' }}>Erweiterungsfeld x-[1] = [2]</div>
+
+**Stapelblock** · Typ-ID `compose_extension` · gehört unter einen "Docker Compose"-Startblock
+
+> x-Felder (z. B. für Anker). Der Wert ist YAML.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `K` | Text | `common` |  |
+| 2 | `V` | undefined | undefined |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+x-common:
+  restart: unless-stopped
 ```
 
 </details>

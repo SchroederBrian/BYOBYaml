@@ -23,7 +23,7 @@ Service mit Volume, Healthcheck und Restart
   - `Variable POSTGRES_PASSWORD = change-me`
   - `Variable POSTGRES_DB = app`
   - `Volume pgdata → /var/lib/postgresql/data nur lesen ☐`
-  - `Healthcheck undefined pg_isready -U app alle 10s Timeout 5s Versuche 5 Startphase `
+  - `Healthcheck undefined pg_isready -U app alle 10s Timeout 5s Versuche 5 Startphase Start-Intervall `
   - `Neustart unless-stopped`
 - `Volume pgdata Treiber Standard extern ☐ echter Name `
 
@@ -62,7 +62,7 @@ Service mit Volume und Healthcheck
   - `Variable MARIADB_ROOT_PASSWORD = change-me`
   - `Variable MARIADB_DATABASE = app`
   - `Volume mariadb → /var/lib/mysql nur lesen ☐`
-  - `Healthcheck undefined healthcheck.sh --connect --innodb_initialized alle 10s Timeout 5s Versuche 5 Startphase `
+  - `Healthcheck undefined healthcheck.sh --connect --innodb_initialized alle 10s Timeout 5s Versuche 5 Startphase Start-Intervall `
   - `Neustart unless-stopped`
 - `Volume mariadb Treiber Standard extern ☐ echter Name `
 
@@ -99,7 +99,7 @@ AOF-Persistenz und Volume
 - `Service redis Image redis:7-alpine`
   - `Command redis-server --appendonly yes`
   - `Volume redis → /data nur lesen ☐`
-  - `Healthcheck undefined redis-cli ping alle 10s Timeout 3s Versuche 5 Startphase `
+  - `Healthcheck undefined redis-cli ping alle 10s Timeout 3s Versuche 5 Startphase Start-Intervall `
   - `Neustart unless-stopped`
 - `Volume redis Treiber Standard extern ☐ echter Name `
 
@@ -113,7 +113,7 @@ services:
     command:
       - redis-server
       - --appendonly
-      - yes
+      - "yes"
     volumes:
       - redis:/data
     healthcheck:
@@ -139,8 +139,8 @@ Build, Port, Env, wartet auf gesunde DB
 - `Service app Image `
   - `Build Ordner . Dockerfile Dockerfile`
   - `Port Host 8080 → Container 3000 tcp`
-  - `Variablen aus Datei .env`
-  - `wartet auf db bis gesund`
+  - `Variablen aus Datei .env Pflicht ☐`
+  - `wartet auf db bis gesund neu starten mit ☐ Pflicht ☐`
   - `Neustart unless-stopped`
 
 <details>
@@ -149,7 +149,7 @@ Build, Port, Env, wartet auf gesunde DB
 ```yaml
 services:
   app:
-    build: .
+    build: "."
     ports:
       - "8080:3000"
     env_file:
@@ -226,7 +226,7 @@ DB-Weboberfläche auf Port 8081
 
 - `Service adminer Image adminer:4`
   - `Port Host 8081 → Container 8080 tcp`
-  - `wartet auf db bis gestartet`
+  - `wartet auf db bis gestartet neu starten mit ☐ Pflicht ☐`
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -275,7 +275,7 @@ services:
 
 curl gegen /health (in Service legen)
 
-- `Healthcheck undefined curl -fsS http://localhost:3000/health || exit 1 alle 30s Timeout 5s Versuche 3 Startphase `
+- `Healthcheck undefined curl -fsS http://localhost:3000/health || exit 1 alle 30s Timeout 5s Versuche 3 Startphase Start-Intervall `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -321,7 +321,7 @@ services:
 
 CPU/RAM-Limit und Replicas (in Service legen)
 
-- `Limit CPU 1.0 RAM 512M`
+- `undefined CPU 1.0 RAM 512M`
 - `Replicas 2`
 
 <details>
@@ -460,9 +460,9 @@ Mit Speicher pro Pod und Secret-Passwort
 - `pro Pod Speicher data Größe 10Gi`
 - `Container postgres Image postgres:16`
   - `Port 5432 Name pg TCP`
-  - `Variable POSTGRES_PASSWORD aus Secret postgres Schlüssel password`
+  - `Variable POSTGRES_PASSWORD aus Secret postgres Schlüssel password optional ☐`
   - `Variable PGDATA = /var/lib/postgresql/data/pgdata`
-  - `Volume data einhängen in /var/lib/postgresql/data nur lesen ☐`
+  - `Volume data einhängen in /var/lib/postgresql/data nur lesen ☐ Unterpfad `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -559,7 +559,7 @@ Einmaliger Job mit Secret-Env
 - `Job migrate Versuche 2`
 - `Container migrate Image registry.example.com/web:1.0`
   - `Command bin/migrate --all`
-  - `alle Variablen aus Secret db-credentials`
+  - `alle Variablen aus Secret db-credentials Präfix optional ☐`
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -634,7 +634,7 @@ Volume aus PVC + Container-Mount (unter Deployment)
 
 - `Volume data aus PVC app-data`
 - `Container app Image nginx:latest`
-  - `Volume data einhängen in /data nur lesen ☐`
+  - `Volume data einhängen in /data nur lesen ☐ Unterpfad `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -769,7 +769,7 @@ spec:
 
 runAsNonRoot + fsGroup (unter Deployment)
 
-- `Pod läuft nicht als root ☑ fsGroup 1000`
+- `Pod läuft nicht als root ☑ fsGroup 1000 User Gruppe `
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -802,8 +802,8 @@ spec:
 
 envFrom für beide (in Container legen)
 
-- `alle Variablen aus ConfigMap app-config`
-- `alle Variablen aus Secret app-secret`
+- `alle Variablen aus ConfigMap app-config Präfix optional ☐`
+- `alle Variablen aus Secret app-secret Präfix optional ☐`
 
 <details>
 <summary>Erzeugtes YAML</summary>
@@ -1057,7 +1057,7 @@ nginx + cert-manager
 - `Ingress web Klasse nginx`
 - `cert-manager Issuer letsencrypt`
 - `TLS für app.example.com mit Secret web-tls`
-- `Regel Host app.example.com Pfad / → Service web Port 80`
+- `Regel Host app.example.com Pfad / → Service web Port 80 Abgleich undefined`
 
 <details>
 <summary>Erzeugtes YAML</summary>

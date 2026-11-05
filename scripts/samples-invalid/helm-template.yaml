@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web
+spec:
+  replicas: {{ .Values.replicas }}
+  {{- if .Values.enabled }}
+  template: {}
+  {{- end }}

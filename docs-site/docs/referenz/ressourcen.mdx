@@ -31,6 +31,7 @@ Startblöcke für Kubernetes- und OpenShift-Ressourcen. Jeder Startblock erzeugt
 | [BuildConfig … → ImageStreamTag … Ablauf …](#k8s-buildconfig) | Start | oberste Ebene |
 | [ServiceAccount …](#k8s-serviceaccount) | Start | oberste Ebene |
 | [Eigene Ressource … kind … apiVersion …](#k8s-custom) | Start | oberste Ebene |
+| [OpenShift Template … Beschreibung …](#k8s-template) | Start | oberste Ebene |
 
 ## Namespace … {#k8s-namespace}
 
@@ -548,6 +549,32 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: my-resource
+```
+
+</details>
+
+## OpenShift Template … Beschreibung … {#k8s-template}
+
+<div className="block-sig" style={{ '--c': '#c08a1e' }}>OpenShift Template [1] Beschreibung [2]</div>
+
+**Startblock – beginnt ein YAML-Dokument** · Typ-ID `k8s_template`
+
+> Alle anderen Startblöcke dieser Datei werden zu den objects: des Templates. Parameter mit $&#123;NAME&#125; oder $&#123;&#123;NAME&#125;&#125; (Zahlen) verwenden.
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `NAME` | Text | `my-template` |  |
+| 2 | `DESC` | Text | *(leer)* |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: my-template
+objects: []
 ```
 
 </details>

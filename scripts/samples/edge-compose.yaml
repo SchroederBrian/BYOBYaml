@@ -1,0 +1,172 @@
+# Edge cases for Docker Compose (long syntax, extensions, anchors, multiline)
+name: edge
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+x-env: &common-env
+  TZ: Europe/Berlin
+  LOG_LEVEL: info
+
+include:
+  - ./monitoring/compose.yaml
+
+services:
+  web:
+    image: nginx:1.27
+    logging: *default-logging
+    ports:
+      - target: 80
+        published: "8080"
+        protocol: tcp
+      - target: 443
+        published: 8443
+        host_ip: 127.0.0.1
+      - "9000-9005:9000-9005"
+      - "53:53/udp"
+    volumes:
+      - type: bind
+        source: ./html
+        target: /usr/share/nginx/html
+        read_only: true
+      - type: volume
+        source: cache
+        target: /var/cache/nginx
+      - type: tmpfs
+        target: /tmp
+        tmpfs:
+          size: 64m
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      <<: *common-env
+      FEATURE_FLAG: "no"
+      ENABLED: "true"
+      EMPTY:
+    env_file:
+      - path: ./default.env
+        required: true
+      - path: ./override.env
+        required: false
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
+      cache:
+        condition: service_started
+        required: false
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/conf.d/default.conf
+      - shared_cfg
+    secrets:
+      - source: tls_cert
+        target: server.crt
+        mode: 0444
+    networks:
+      frontend:
+        aliases:
+          - www
+      backend:
+        ipv4_address: 172.20.0.10
+    command: >
+      nginx -g 'daemon off;'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+      start_interval: 2s
+    ulimits:
+      nofile:
+        soft: 20000
+        hard: 40000
+      nproc: 65535
+    tmpfs:
+      - /run
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web.rule=Host(`example.com`)
+    extra_hosts:
+      host.docker.internal: host-gateway
+    stop_grace_period: 1m30s
+    sysctls:
+      net.core.somaxconn: 1024
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NODE_ENV=production
+      cache_from:
+        - type=registry,ref=ghcr.io/example/api:cache
+    extends:
+      file: common.yaml
+      service: base
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "starting"
+        exec node server.js
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1G
+        reservations:
+          memory: 256M
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    develop:
+      watch:
+        - action: sync
+          path: ./api/src
+          target: /app/src
+    logging: *default-logging
+
+  cache:
+    image: redis:7
+    profiles: [debug]
+    restart: on-failure:5
+
+volumes:
+  cache:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /srv/data
+
+networks:
+  frontend:
+  backend:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+configs:
+  nginx_conf:
+    file: ./nginx/default.conf
+  shared_cfg:
+    external: true
+
+secrets:
+  tls_cert:
+    file: ./certs/server.crt
+  api_key:
+    environment: API_KEY

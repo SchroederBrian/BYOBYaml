@@ -47,6 +47,7 @@ export function shade(hex: string, amt: number): string {
 
 export type ArgDef =
   | { kind: 'text'; name: string; value: string }
+  | { kind: 'multi'; name: string; value: string }
   | { kind: 'num'; name: string; value: number; min?: number; precision?: number }
   | { kind: 'dd'; name: string; options: [string, string][] }
   | { kind: 'chk'; name: string; value: boolean };
@@ -79,6 +80,8 @@ export interface BlockSpec {
 }
 
 export const T = (name: string, value = ''): ArgDef => ({ kind: 'text', name, value });
+/** multi-line text (config files, scripts, certificates) */
+export const M = (name: string, value = ''): ArgDef => ({ kind: 'multi', name, value });
 export const N = (name: string, value = 0, min?: number, precision?: number): ArgDef => ({
   kind: 'num',
   name,

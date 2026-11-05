@@ -19,9 +19,11 @@ Ports eines Services, Route- und Ingress-Regeln.
 | [Hostname …](#route-host) | Stapel | unter eine Route |
 | [Pfad …](#route-path) | Stapel | unter eine Route |
 | [HTTPS … unsicheres HTTP …](#route-tls) | Stapel | unter eine Route |
-| [Regel Host … Pfad … → Service … Port …](#ingress-rule) | Stapel | unter einen Ingress |
+| [Regel Host … Pfad … → Service … Port … Abgleich …](#ingress-rule) | Stapel | unter einen Ingress |
 | [TLS für … mit Secret …](#ingress-tls) | Stapel | unter einen Ingress |
 | [cert-manager Issuer …](#ingress-annotation-ssl) | Stapel | unter einen Ingress |
+| [Headless (keine Cluster-IP)](#svc-k8s-headless) | Stapel | unter einen Service |
+| [externer DNS-Name …](#svc-k8s-external) | Stapel | unter einen Service (Typ ExternalName) |
 
 ## Port … → Ziel … Name … … {#svc-k8s-port}
 
@@ -201,9 +203,9 @@ spec:
 
 </details>
 
-## Regel Host … Pfad … → Service … Port … {#ingress-rule}
+## Regel Host … Pfad … → Service … Port … Abgleich … {#ingress-rule}
 
-<div className="block-sig" style={{ '--c': '#3a9558' }}>Regel Host [1] Pfad [2] → Service [3] Port [4]</div>
+<div className="block-sig" style={{ '--c': '#3a9558' }}>Regel Host [1] Pfad [2] → Service [3] Port [4] Abgleich [5]</div>
 
 **Stapelblock** · Typ-ID `ingress_rule` · gehört unter einen Ingress
 
@@ -213,6 +215,7 @@ spec:
 | 2 | `PATH` | Text | `/` |  |
 | 3 | `SVC` | Text | `demo-app` |  |
 | 4 | `PORT` | Text | `80` |  |
+| 5 | `PTYPE` | Auswahl | `Präfix` | `Präfix` → `Prefix`, `exakt` → `Exact`, `Controller` → `ImplementationSpecific` |
 
 <details>
 <summary>Erzeugtes YAML mit Standardwerten</summary>
@@ -290,6 +293,56 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt
 spec:
   ingressClassName: nginx
+```
+
+</details>
+
+## Headless (keine Cluster-IP) {#svc-k8s-headless}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>Headless (keine Cluster-IP)</div>
+
+**Stapelblock** · Typ-ID `svc_k8s_headless` · gehört unter einen Service
+
+> clusterIP: None – DNS liefert direkt die Pod-IPs (z. B. für StatefulSets).
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  selector:
+    app: demo
+  type: ClusterIP
+  clusterIP: None
+```
+
+</details>
+
+## externer DNS-Name … {#svc-k8s-external}
+
+<div className="block-sig" style={{ '--c': '#3a9558' }}>externer DNS-Name [1]</div>
+
+**Stapelblock** · Typ-ID `svc_k8s_external` · gehört unter einen Service (Typ ExternalName)
+
+| # | Feld | Art | Standard | Auswahl |
+| --- | --- | --- | --- | --- |
+| 1 | `HOST` | Text | `db.example.com` |  |
+
+<details>
+<summary>Erzeugtes YAML mit Standardwerten</summary>
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  type: ExternalName
+  externalName: db.example.com
 ```
 
 </details>

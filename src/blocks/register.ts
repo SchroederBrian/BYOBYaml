@@ -1,5 +1,6 @@
 // Turns BlockSpecs into real Blockly blocks, plus theme, toolbox and context menu.
 import * as Blockly from 'blockly/core';
+import { registerFieldMultilineInput } from '@blockly/field-multilineinput';
 import { ALL_BLOCKS } from './defs';
 import { ArgDef, BlockSpec, CATEGORIES, CatId } from './types';
 import { BUILTIN_SNIPPETS, snippetState } from '../snippets';
@@ -8,6 +9,8 @@ function argJson(a: ArgDef): any {
   switch (a.kind) {
     case 'text':
       return { type: 'field_input', name: a.name, text: a.value, spellcheck: false };
+    case 'multi':
+      return { type: 'field_multilinetext', name: a.name, text: a.value, spellcheck: false };
     case 'num':
       // text field so ${VARIABLES} work in numbers too
       return { type: 'field_input', name: a.name, text: String(a.value), spellcheck: false };
@@ -49,6 +52,7 @@ let registered = false;
 export function registerBlocks() {
   if (registered) return;
   registered = true;
+  registerFieldMultilineInput();
   Blockly.common.defineBlocksWithJsonArray(ALL_BLOCKS.map(blockJson));
   if (typeof document !== 'undefined') {
     Blockly.registry.register(Blockly.registry.Type.TOOLBOX_ITEM, Blockly.ToolboxCategory.registrationName, DotCategory, true);
@@ -86,9 +90,15 @@ export function readValues(block: Blockly.Block, spec: BlockSpec, vars: Record<s
     else if (a.kind === 'num') {
       const s = subst(String(raw ?? '').trim());
       const n = Number(s);
-      if (s === '' || Number.isNaN(n)) problems.push(`"${s}" ist keine Zahl.`);
+      // unresolved ${X} / ${{X}} (Compose, OpenShift templates) stays as text
+      const passVar = passThroughUnknown && s.includes('${');
+      if ((s === '' || Number.isNaN(n)) && !passVar) problems.push(`"${s}" ist keine Zahl.`);
       v[a.name] = s === '' || Number.isNaN(n) ? s : n;
-    } else v[a.name] = subst(String(raw ?? '').trim());
+    } else {
+      // keep multi-line values exactly (trailing newline matters for certs/config files)
+      const str = String(raw ?? '');
+      v[a.name] = subst(str.includes('\n') ? str : str.trim());
+    }
   }
   return v;
 }
