@@ -121,6 +121,7 @@ export async function openTexts(ext: string[], multi = true): Promise<{ name: st
 
 export async function exportAll(files: { name: string; content: string }[]): Promise<string | null> {
   if (window.byob) return window.byob.exportFolder({ files });
-  for (const f of files) await saveText(f.name, f.content, ['yaml']);
+  // browsers cannot create folders: "base/app.yaml" → "base_app.yaml"
+  for (const f of files) await saveText(f.name.replace(/[\\/]+/g, '_'), f.content, ['yaml']);
   return 'Downloads';
 }

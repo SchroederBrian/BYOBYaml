@@ -31,6 +31,23 @@ Dieses Kapitel führt durch das Fenster. Alle Screenshots stammen aus der App un
 - Mit der Maus über eine Datei fahren: Es erscheinen ✎ Umbenennen, ⧉ Duplizieren und 🗑 Löschen. Doppelklick benennt ebenfalls um.
 - Der Name ist gleichzeitig der Dateiname beim Export, also am besten mit Endung, z. B. `04-deployment.yaml`.
 
+### Ordner
+
+- **Neuer Ordner**: Ordner-Symbol mit Plus oben in der Dateiliste. Der Ordner entsteht im gerade gewählten Ordner, gleich danach tippst du den Namen.
+- **Ordner wählen**: Ein Klick auf einen Ordner klappt ihn auf oder zu und macht ihn zum *aktuellen* Ordner. Neue Dateien und importierte YAML-Dateien landen dort. Ein Klick auf eine Datei macht ihren Ordner zum aktuellen.
+- **Verschieben**: Dateien oder ganze Ordner per Drag & Drop auf einen Ordner ziehen. Ganz unten erscheint beim Ziehen *Hierher ziehen: oberste Ebene*. Ordner lassen sich auch ineinander schachteln.
+- **Umbenennen**: Doppelklick auf den Ordner oder ✎.
+- **Auflösen** (🗑 am Ordner): Der Ordner verschwindet, seine Dateien wandern eine Ebene nach oben. Dabei wird **keine Datei gelöscht**.
+- Beim Export **Alle Dateien in Ordner…** legt die Desktop-App die Ordner als Unterordner an. Im Browser steht der Ordner im Dateinamen (`web_04-deployment.yaml`).
+
+### Mehrere Dateien auf einmal
+
+- <kbd>Strg</kbd>+Klick wählt einzelne Dateien dazu oder ab, <kbd>Shift</kbd>+Klick wählt einen Bereich, <kbd>Strg</kbd>+<kbd>A</kbd> in der Dateiliste wählt alle.
+- <kbd>Strg</kbd>+Klick auf einen Ordner wählt alle Dateien darin.
+- Auf dem Handy oder ohne Tastatur: das Häkchen-Symbol oben in der Dateiliste schaltet den Auswahlmodus ein, dann genügt Antippen.
+- Über der Liste erscheint eine Leiste mit **Verschieben** (in einen Ordner, nach oben oder in einen neuen Ordner), **Duplizieren**, **Exportieren** (als YAML) und **Löschen** (<kbd>Entf</kbd>). Vor dem Löschen zeigt die App, welche Dateien betroffen sind.
+- Ziehst du eine ausgewählte Datei, wandern alle ausgewählten mit. <kbd>Esc</kbd> hebt die Auswahl auf.
+
 ## Menüs
 
 | Datei | Importieren | Exportieren |

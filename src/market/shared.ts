@@ -1,6 +1,7 @@
 // Marketplace data model + validation, shared by the app (before upload) and the server (on upload).
 // No Blockly / DOM imports here: the server bundles this file.
 import { ALL_BLOCKS, SPEC_BY_TYPE } from '../blocks/defs';
+import { cleanFolder } from '../folders';
 
 /** what is shared */
 export type ItemKind = 'snippet' | 'file' | 'project';
@@ -32,6 +33,8 @@ export interface FileData {
   name: string;
   kind: 'compose' | 'k8s';
   state: any;
+  /** folder inside a project (explorer), e.g. "base/apps" */
+  folder?: string;
 }
 export interface ProjectData {
   title: string;
@@ -160,7 +163,8 @@ export function checkData(kind: ItemKind, data: any): Checked {
     const name = String(f.name ?? '').trim().slice(0, 120) || `datei-${i + 1}.yaml`;
     if (f.kind !== 'compose' && f.kind !== 'k8s') throw new Error(`Datei "${name}": unbekannter Typ.`);
     if (!f.state || typeof f.state !== 'object' || !Array.isArray(workspaceBlocks(f.state))) throw new Error(`Datei "${name}" enthält keine Blöcke.`);
-    return { name, kind: f.kind, state: { blocks: { languageVersion: 0, blocks: workspaceBlocks(f.state) } } };
+    const folder = cleanFolder(f.folder);
+    return { name, kind: f.kind, state: { blocks: { languageVersion: 0, blocks: workspaceBlocks(f.state) } }, ...(folder ? { folder } : {}) };
   };
   if (kind === 'snippet') {
     if (!data.block || typeof data.block !== 'object' || typeof data.block.type !== 'string') throw new Error('Die Block-Kombination ist leer.');

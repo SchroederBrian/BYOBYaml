@@ -219,13 +219,15 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
   const rows: [string, string][] = [
     ['Startblock', 'Jede Ressource beginnt mit einem Startblock (abgerundete Kappe). Mehrere Startblöcke in einer Datei werden mit --- getrennt.'],
     ['Verschachteln', 'Blöcke rasten unter dem Startblock ein. Container- und Service-Blöcke nehmen weitere Blöcke auf.'],
+    ['Auswählen', 'Ziehen auf der leeren Fläche zieht einen Rahmen auf (Shift = dazu). Ausgewählte Stapel gemeinsam ziehen, Entf löscht, Strg+C/V kopiert. Leertaste + Ziehen verschiebt die Ansicht. Umschalten oben: Auswählen / Verschieben.'],
+    ['Dateien & Ordner', 'Ordner-Symbol mit Plus legt einen Ordner an, Dateien per Drag & Drop verschieben. Strg/Shift + Klick wählt mehrere Dateien – dann verschieben, duplizieren, exportieren oder löschen.'],
     ['Variablen', '${NAME} funktioniert in jedem Feld, auch in Zahlenfeldern. Die Werte kommen pro Umgebung (dev/prod …) aus dem Tab Variablen.'],
     ['Extras', 'Feld, Liste und YAML-Einmischen setzen jedes beliebige Feld, auch wenn es keinen eigenen Block dafür gibt.'],
     ['Import', 'YAML-Dateien, eingefügtes YAML oder die Ausgabe von oc/kubectl get -o yaml. Cluster-Felder (status, uid, managedFields …) werden entfernt.'],
     ['Vorlagen', 'Unter Vorlagen gibt es fertige Block-Kombinationen. Eigene speicherst du per Rechtsklick → „Ab hier als Vorlage speichern…“.'],
     ['Marktplatz', 'Titelleiste → Marktplatz: Block-Kombinationen, Dateien und Projekte anderer kostenlos ansehen und übernehmen. Eigene teilen: Rechtsklick auf einen Block → „Ab hier im Marktplatz teilen…“ oder Datei → Im Marktplatz veröffentlichen.'],
     ['Speichern', 'Automatisch in SQLite unter %APPDATA%\\BYOBYaml. .byob-Dateien dienen zum Austausch und als Backup.'],
-    ['Tastatur', 'Strg+S speichert sofort · Strg+Z / Strg+Y für Rückgängig / Wiederholen · Entf löscht den gewählten Block · Strg+C / Strg+V für Blöcke.'],
+    ['Tastatur', 'Strg+S speichert sofort · Strg+Z / Strg+Y für Rückgängig / Wiederholen · Entf löscht den gewählten Block · Strg+C / Strg+V kopiert einen Block mit allen Blöcken darunter.'],
   ];
   return (
     <Modal title="Kurzreferenz" onClose={onClose} wide>

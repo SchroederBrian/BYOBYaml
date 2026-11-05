@@ -1,4 +1,5 @@
 // Project model: a project holds YAML files (each with a block workspace), variables and environments.
+import { cleanFolder, normalizeFolders } from './folders';
 
 export type FileKind = 'compose' | 'k8s';
 
@@ -10,6 +11,8 @@ export interface ProjectFile {
   state: any;
   /** Run Blockly "clean up" once after loading (imports). */
   needsLayout?: boolean;
+  /** folder in the file explorer, e.g. "base/apps" ('' / missing = top level) */
+  folder?: string;
 }
 
 export interface Variable {
@@ -28,6 +31,8 @@ export interface Project {
   variables: Variable[];
   envs: string[];
   activeEnv: string;
+  /** folders of the file explorer (also empty ones) */
+  folders?: string[];
 }
 
 export interface ProjectMeta {
@@ -53,16 +58,21 @@ export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().to
 export function normalizeProject(p: any): Project {
   if (!p || p.format !== 'byobyaml' || !Array.isArray(p.files)) throw new Error('Keine gültige BYOBYaml-Projektdatei');
   const envs: string[] = Array.isArray(p.envs) && p.envs.length ? p.envs : ['dev'];
+  const files: ProjectFile[] = p.files.map((f: any) => {
+    const folder = cleanFolder(f.folder);
+    return { id: f.id || uid(), name: f.name || 'datei.yaml', kind: f.kind === 'compose' ? 'compose' : 'k8s', state: f.state, needsLayout: f.needsLayout, ...(folder ? { folder } : {}) };
+  });
   return {
     format: 'byobyaml',
     version: 2,
     id: typeof p.id === 'string' ? p.id : uid(),
     title: p.title || 'Unbenannt',
     createdAt: p.createdAt,
-    files: p.files.map((f: any) => ({ id: f.id || uid(), name: f.name || 'datei.yaml', kind: f.kind === 'compose' ? 'compose' : 'k8s', state: f.state, needsLayout: f.needsLayout })),
+    files,
     variables: Array.isArray(p.variables) ? p.variables.filter((v: any) => v && v.name).map((v: any) => ({ name: String(v.name), values: { ...(v.values || {}) } })) : [],
     envs,
     activeEnv: envs.includes(p.activeEnv) ? p.activeEnv : envs[0],
+    folders: normalizeFolders(Array.isArray(p.folders) ? p.folders : [], files.map((f) => f.folder ?? '')),
   };
 }
 

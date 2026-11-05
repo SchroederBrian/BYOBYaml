@@ -4,6 +4,7 @@ import * as De from 'blockly/msg/de';
 import { buildTheme, buildToolbox, editorHooks, FIXED_FLYOUT, registerBlocks, registerDynamicCategories, START_SCALE } from '../blocks/register';
 import { generate, GenResult } from '../blocks/generator';
 import { FileKind, Snippet } from '../project';
+import { CanvasMode, enableSelection, patchChainCopy, Selection } from '../blocks/multiselect';
 
 export interface BlockEditorHandle {
   load(state: any, kind: FileKind, layout?: boolean): void;
@@ -14,6 +15,8 @@ export interface BlockEditorHandle {
   regenerate(): void;
   /** add a block chain (e.g. from the marketplace) near the visible top-left and select it */
   insert(blockState: any): void;
+  setMode(m: CanvasMode): void;
+  clearSelection(): void;
 }
 
 interface Props {
@@ -22,9 +25,11 @@ interface Props {
   onChange: (res: GenResult) => void;
   onSaveSnippet: (state: any) => void;
   onShareSnippet?: (state: any) => void;
+  mode: CanvasMode;
+  onSelectionChange?: (count: number) => void;
 }
 
-const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ vars, userSnippets, onChange, onSaveSnippet, onShareSnippet }, ref) {
+const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ vars, userSnippets, onChange, onSaveSnippet, onShareSnippet, mode, onSelectionChange }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const ws = useRef<Blockly.WorkspaceSvg | null>(null);
   const loading = useRef(false);
@@ -33,6 +38,9 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   const varsRef = useRef(vars);
   const kindRef = useRef<FileKind>('compose');
   varsRef.current = vars;
+  const selection = useRef<Selection | null>(null);
+  const selChange = useRef(onSelectionChange);
+  selChange.current = onSelectionChange;
   const snippetsRef = useRef(userSnippets);
   snippetsRef.current = userSnippets;
   editorHooks.onSaveSnippet = onSaveSnippet;
@@ -47,6 +55,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
 
   useEffect(() => {
     registerBlocks();
+    patchChainCopy();
     Blockly.setLocale(De as any);
     const w = Blockly.inject(host.current!, {
       renderer: 'thrasos',
@@ -61,6 +70,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
     });
     ws.current = w;
     registerDynamicCategories(w);
+    selection.current = enableSelection(w, host.current!, (n) => selChange.current?.(n), mode);
     // handle for automation / debugging (docs screenshots)
     (window as any).__byob = { ws: w, Blockly };
 
@@ -75,11 +85,14 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
     ro.observe(host.current!);
     return () => {
       ro.disconnect();
+      selection.current?.dispose();
       w.dispose();
       ws.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => selection.current?.setMode(mode), [mode]);
 
   // variables changed → regenerate
   useEffect(() => {
@@ -100,6 +113,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       const w = ws.current;
       if (!w) return;
       loading.current = true;
+      selection.current?.clear();
       try {
         w.updateToolbox(buildToolbox(kind));
         Blockly.Events.disable();
@@ -148,6 +162,12 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       const block = Blockly.serialization.blocks.append({ ...rest, x: m.left + 60, y: m.top + 40 }, w) as Blockly.BlockSvg;
       Blockly.common.setSelected(block);
       w.scrollBoundsIntoView?.(block.getBoundingRectangle());
+    },
+    setMode(m) {
+      selection.current?.setMode(m);
+    },
+    clearSelection() {
+      selection.current?.clear();
     },
   }));
 

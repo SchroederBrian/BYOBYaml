@@ -2,6 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as Blockly from 'blockly/core';
 import BlockEditor, { BlockEditorHandle } from './components/BlockEditor';
 import YamlView from './components/YamlView';
+import Explorer from './components/Explorer';
+import type { CanvasMode } from './blocks/multiselect';
+import { joinPath } from './folders';
 import { Icon } from './components/Icons';
 import { ProblemsPanel, SnippetsPanel, VariablesPanel } from './components/Panels';
 import { HelpDialog, PasteDialog, ProjectsDialog, PromptDialog, ReportDialog, ReportEntry } from './components/Dialogs';
@@ -62,7 +65,11 @@ export default function App() {
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [saveState, setSaveState] = useState<{ s: 'saved' | 'saving' | 'error'; at?: number }>({ s: 'saved' });
   const [dbFile, setDbFile] = useState('');
-  const [renaming, setRenaming] = useState<string | null>(null);
+  // folder new files / imports go into
+  const [currentFolder, setCurrentFolder] = useState('');
+  // canvas: drag on empty space selects (select) or moves the view (pan)
+  const [canvasMode, setCanvasMode] = useState<CanvasMode>(() => (localStorage.getItem('byob.canvasMode') === 'pan' || window.matchMedia('(max-width: 820px)').matches ? 'pan' : 'select'));
+  const [selCount, setSelCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   // phones: one pane at a time (files / blocks / inspector), switched via the bottom bar
   const [mobileView, setMobileView] = useState<'files' | 'canvas' | 'inspector'>('canvas');
@@ -79,6 +86,8 @@ export default function App() {
   projectRef.current = project;
   const activeRef = useRef(activeId);
   activeRef.current = activeId;
+  const currentFolderRef = useRef(currentFolder);
+  currentFolderRef.current = currentFolder;
 
   const vars = useMemo(() => varsOf(project), [project?.variables, project?.activeEnv]); // eslint-disable-line react-hooks/exhaustive-deps
   const active = project?.files.find((f) => f.id === activeId) ?? project?.files[0];
@@ -124,6 +133,7 @@ export default function App() {
     loadedKey.current = '';
     setProject(p);
     setActiveId(p.files[0]?.id ?? '');
+    setCurrentFolder('');
     db.setSetting('lastProjectId', p.id);
   };
 
@@ -174,32 +184,15 @@ export default function App() {
   }, []);
 
   // ---------- files ----------
+  const namesIn = (p: Project, folder: string) => p.files.filter((x) => (x.folder ?? '') === folder).map((x) => x.name);
   const addFile = (kind: FileKind) => {
     if (!project) return;
-    const f = emptyFile(kind, project.files.map((x) => x.name));
+    const f: ProjectFile = { ...emptyFile(kind, namesIn(project, currentFolder)), ...(currentFolder ? { folder: currentFolder } : {}) };
     patch({ files: [...project.files, f] });
     setActiveId(f.id);
     setMobileView('canvas');
   };
-  const duplicateFile = (f: ProjectFile) => {
-    if (!project) return;
-    const copy: ProjectFile = { ...f, id: uid(), name: uniqueName(f.name.replace(/(\.ya?ml)?$/, '-kopie$1'), project.files.map((x) => x.name)) };
-    patch({ files: [...project.files, copy] });
-    setActiveId(copy.id);
-  };
-  const deleteFile = (f: ProjectFile) => {
-    if (!project) return;
-    if (project.files.length <= 1) return flash('Mindestens eine Datei muss bleiben.');
-    if (!window.confirm(`"${f.name}" löschen?`)) return;
-    const rest = project.files.filter((x) => x.id !== f.id);
-    patch({ files: rest });
-    if (f.id === activeId) setActiveId(rest[0].id);
-  };
-  const renameFile = (id: string, name: string) => {
-    if (!project || !name.trim()) return setRenaming(null);
-    patch({ files: project.files.map((f) => (f.id === id ? { ...f, name: name.trim() } : f)) });
-    setRenaming(null);
-  };
+  useEffect(() => localStorage.setItem('byob.canvasMode', canvasMode), [canvasMode]);
 
   // ---------- import ----------
   const importTexts = async (list: { name: string; content: string }[]) => {
@@ -207,7 +200,8 @@ export default function App() {
     if (!p || !list.length) return;
     const entries: ReportEntry[] = [];
     const added: ProjectFile[] = [];
-    const names = p.files.map((f) => f.name);
+    const folder = currentFolderRef.current;
+    const names = namesIn(p, folder);
     let openAfter: Project | null = null;
     for (const item of list) {
       try {
@@ -226,6 +220,7 @@ export default function App() {
         } else {
           const r = importYaml(item.content, item.name);
           r.file.name = uniqueName(r.file.name, names);
+          if (folder) r.file.folder = folder;
           names.push(r.file.name);
           added.push(r.file);
           entries.push({ name: item.name, ok: true, lines: r.notes });
@@ -291,9 +286,16 @@ export default function App() {
     setMenu(null);
     const p = projectRef.current;
     if (!p) return;
-    const files = p.files.map((f) => ({ name: f.name, content: f.id === activeId ? result.yaml : yamlForFile(f, vars) }));
+    const files = p.files.map((f) => ({ name: joinPath(f.folder ?? '', f.name), content: f.id === activeId ? result.yaml : yamlForFile(f, vars) }));
     const r = await exportAll(files);
     if (r) flash(`${files.length} Dateien (${p.activeEnv}) → ${r}`);
+  };
+  const exportSome = async (list: ProjectFile[]) => {
+    const p = projectRef.current;
+    if (!p || !list.length) return;
+    const files = list.map((f) => ({ name: joinPath(f.folder ?? '', f.name), content: f.id === activeId ? result.yaml : yamlForFile(f, vars) }));
+    const r = files.length === 1 ? await saveText(list[0].name, files[0].content, ['yaml', 'yml']) : await exportAll(files);
+    if (r) flash(`${files.length} ${files.length === 1 ? 'Datei' : 'Dateien'} (${p.activeEnv}) → ${r}`);
   };
   const exportProject = async () => {
     setMenu(null);
@@ -384,7 +386,7 @@ export default function App() {
       project: p
         ? {
             title: p.title,
-            files: p.files.map((x) => ({ name: x.name, kind: x.kind, state: x.id === f?.id && liveState ? liveState : x.state })),
+            files: p.files.map((x) => ({ name: x.name, kind: x.kind, state: x.id === f?.id && liveState ? liveState : x.state, ...(x.folder ? { folder: x.folder } : {}) })),
             variables: p.variables,
             envs: p.envs,
           }
@@ -416,7 +418,7 @@ export default function App() {
       return `In „Meine Vorlagen“: ${item.title}`;
     }
     if (how === 'file' && isFile(d) && p) {
-      const f: ProjectFile = { id: uid(), name: uniqueName(d.name, p.files.map((x) => x.name)), kind: d.kind, state: d.state, needsLayout: true };
+      const f: ProjectFile = { id: uid(), name: uniqueName(d.name, namesIn(p, currentFolder)), kind: d.kind, state: d.state, needsLayout: true, ...(currentFolder ? { folder: currentFolder } : {}) };
       patch({ files: [...p.files, f] });
       setActiveId(f.id);
       setMarketOpen(null);
@@ -430,7 +432,7 @@ export default function App() {
         id: uid(),
         title: d.title || item.title,
         createdAt: Date.now(),
-        files: d.files.map((f) => ({ id: uid(), name: f.name, kind: f.kind, state: f.state, needsLayout: true })),
+        files: d.files.map((f) => ({ id: uid(), name: f.name, kind: f.kind, state: f.state, needsLayout: true, folder: f.folder })),
         variables: d.variables,
         envs: d.envs,
         activeEnv: d.envs[0] ?? 'dev',
@@ -606,62 +608,20 @@ export default function App() {
 
       <div className="workbench">
         {/* ================= explorer ================= */}
-        <aside className="explorer">
-          <div className="pane-head">
-            <span>Dateien</span>
-            <div className="pane-actions">
-              <button className="icon-btn" title="Neue Compose-Datei" onClick={() => addFile('compose')}>
-                <Icon name="whale" />
-              </button>
-              <button className="icon-btn" title="Neue Kubernetes-Datei" onClick={() => addFile('k8s')}>
-                <Icon name="helm" />
-              </button>
-              <button className="icon-btn" title="YAML importieren" onClick={() => importFromDisk(['yaml', 'yml'])}>
-                <Icon name="upload" />
-              </button>
-            </div>
-          </div>
-          <ul className="file-list">
-            {project?.files.map((f) => (
-              <li key={f.id} className={f.id === active?.id ? 'active' : ''} onClick={() => (setActiveId(f.id), setMobileView('canvas'))} onDoubleClick={() => setRenaming(f.id)}>
-                <span className={`kind kind-${f.kind}`}>{f.kind === 'compose' ? 'DC' : 'K8'}</span>
-                {renaming === f.id ? (
-                  <input
-                    className="rename"
-                    autoFocus
-                    defaultValue={f.name}
-                    onClick={(e) => e.stopPropagation()}
-                    onBlur={(e) => renameFile(f.id, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') renameFile(f.id, (e.target as HTMLInputElement).value);
-                      if (e.key === 'Escape') setRenaming(null);
-                    }}
-                  />
-                ) : (
-                  <span className="fname" title={f.name}>
-                    {f.name}
-                  </span>
-                )}
-                <span className="row-actions">
-                  <button className="icon-btn" title="Umbenennen" onClick={(e) => (e.stopPropagation(), setRenaming(f.id))}>
-                    <Icon name="edit" size={13} />
-                  </button>
-                  <button className="icon-btn" title="Duplizieren" onClick={(e) => (e.stopPropagation(), duplicateFile(f))}>
-                    <Icon name="dup" size={13} />
-                  </button>
-                  <button className="icon-btn danger" title="Löschen" onClick={(e) => (e.stopPropagation(), deleteFile(f))}>
-                    <Icon name="trash" size={13} />
-                  </button>
-                </span>
-              </li>
-            ))}
-          </ul>
-          <div className="explorer-foot">
-            <button className="btn ghost block" onClick={() => setDialog({ kind: 'paste' })}>
-              <Icon name="code" size={14} /> YAML einfügen
-            </button>
-          </div>
-        </aside>
+        <Explorer
+          files={project?.files ?? []}
+          folders={project?.folders ?? []}
+          activeId={active?.id ?? ''}
+          currentFolder={currentFolder}
+          setCurrentFolder={setCurrentFolder}
+          onOpen={(id) => (setActiveId(id), setMobileView('canvas'))}
+          onUpdate={(files, folders) => patch({ files, folders })}
+          onAddFile={addFile}
+          onImport={() => importFromDisk(['yaml', 'yml'])}
+          onPaste={() => setDialog({ kind: 'paste' })}
+          onExport={exportSome}
+          flash={flash}
+        />
 
         {/* ================= canvas ================= */}
         <main className="canvas">
@@ -669,20 +629,36 @@ export default function App() {
             <div className="crumbs">
               <span className="muted">{project?.title}</span>
               <span className="crumb-sep">/</span>
-              <span>{active?.name}</span>
+              <span>{active?.folder ? `${active.folder}/${active.name}` : active?.name}</span>
               <span className={`kind-pill kind-${active?.kind}`}>{active?.kind === 'compose' ? 'Docker Compose' : 'Kubernetes / OpenShift'}</span>
             </div>
             <div className="canvas-tools">
+              {selCount > 0 && (
+                <span className="sel-info" title="Entf löscht · Strg+C kopiert · Strg+D dupliziert · gemeinsam verschieben durch Ziehen · Esc hebt die Auswahl auf">
+                  {selCount} {selCount === 1 ? 'Block' : 'Blöcke'} ausgewählt
+                  <button className="icon-btn" onClick={() => editor.current?.clearSelection()} title="Auswahl aufheben (Esc)">
+                    <Icon name="x" size={12} />
+                  </button>
+                </span>
+              )}
+              <div className="seg canvas-mode" role="group" aria-label="Ziehen auf freier Fläche">
+                <button onMouseDown={(e) => e.preventDefault()} className={canvasMode === 'select' ? 'on' : ''} onClick={() => setCanvasMode('select')} title="Ziehen auf freier Fläche wählt Blöcke aus (Shift = hinzufügen). Leertaste oder mittlere Maustaste halten = Fläche verschieben.">
+                  <Icon name="select" size={13} /> Auswählen
+                </button>
+                <button onMouseDown={(e) => e.preventDefault()} className={canvasMode === 'pan' ? 'on' : ''} onClick={() => setCanvasMode('pan')} title="Ziehen auf freier Fläche verschiebt die Ansicht. Shift + Klick wählt einzelne Blöcke aus.">
+                  <Icon name="hand" size={13} /> Verschieben
+                </button>
+              </div>
               <button className="btn ghost sm" onClick={() => editor.current?.cleanUp()} title="Stapel untereinander anordnen">
-                <Icon name="broom" size={14} /> Anordnen
+                <Icon name="broom" size={14} /> <span className="btn-label">Anordnen</span>
               </button>
               <button className="btn ghost sm" onClick={() => editor.current?.zoomToFit()} title="Alles sichtbar machen">
-                <Icon name="fit" size={14} /> Einpassen
+                <Icon name="fit" size={14} /> <span className="btn-label">Einpassen</span>
               </button>
             </div>
           </div>
           <div className="canvas-body">
-            <BlockEditor ref={editor} vars={vars} userSnippets={snippets} onChange={onChange} onSaveSnippet={onSaveSnippet} onShareSnippet={onShareSnippet} />
+            <BlockEditor ref={editor} vars={vars} userSnippets={snippets} onChange={onChange} onSaveSnippet={onSaveSnippet} onShareSnippet={onShareSnippet} mode={canvasMode} onSelectionChange={setSelCount} />
           </div>
         </main>
 

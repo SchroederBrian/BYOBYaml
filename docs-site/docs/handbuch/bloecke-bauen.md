@@ -81,7 +81,7 @@ Der Service findet die Pods über `selector: app: web`, also über das Label, da
 | Eintrag | Wirkung |
 | --- | --- |
 | **Ab hier als Vorlage speichern…** | Block samt Inhalt und allen Blöcken darunter als [eigene Vorlage](vorlagen.md) |
-| **Kopieren** | Dupliziert den Block samt Inhalt |
+| **Kopieren** | Dupliziert den Block samt Inhalt **und allen Blöcken darunter** |
 | **Kommentar hinzufügen** | Notiz am Block, nur in BYOBYaml sichtbar |
 | **interne Eingänge** | Ändert nur die Darstellung |
 | **Baustein zusammenfalten** | Klappt den Block zu einer Zeile zusammen, praktisch bei großen Containern |
@@ -92,6 +92,27 @@ Der Service findet die Pods über `selector: app: web`, also über das Label, da
 
 - **Anordnen** (oben über der Fläche) stapelt alle Startblöcke sauber untereinander.
 - **Einpassen** zoomt so, dass alles sichtbar ist.
-- Mit dem Mausrad zoomst du, mit Ziehen auf der leeren Fläche verschiebst du die Ansicht.
+- Mit dem Mausrad zoomst du. Die Palette links behält dabei immer ihre normale Größe.
+
+## Mehrere Blöcke auswählen
+
+Oben über der Fläche wählst du, was **Ziehen auf der leeren Fläche** macht:
+
+- **Auswählen** (Standard am Computer): Mit gedrückter Maustaste einen Rahmen aufziehen. Alle Blöcke, die der Rahmen berührt, werden blau umrandet. Mit <kbd>Shift</kbd> kommen weitere Blöcke dazu. Zum Verschieben der Ansicht hältst du die <kbd>Leertaste</kbd> oder die mittlere Maustaste gedrückt.
+- **Verschieben** (Standard auf dem Handy): Ziehen verschiebt die Ansicht wie bisher.
+
+In beiden Modi gilt:
+
+- <kbd>Shift</kbd>+Klick auf einen Block nimmt ihn in die Auswahl auf oder wieder heraus. <kbd>Strg</kbd>+<kbd>A</kbd> wählt alle Blöcke.
+- **Ziehen** an einem ausgewählten Stapel verschiebt alle ausgewählten Stapel gemeinsam.
+- <kbd>Entf</kbd> löscht die Auswahl. Blöcke darunter, die nicht ausgewählt sind, rücken nach.
+- <kbd>Strg</kbd>+<kbd>C</kbd> / <kbd>Strg</kbd>+<kbd>X</kbd> / <kbd>Strg</kbd>+<kbd>V</kbd> kopieren, schneiden aus und fügen ein, auch in eine andere Datei. <kbd>Strg</kbd>+<kbd>D</kbd> dupliziert direkt.
+- <kbd>Strg</kbd>+<kbd>Z</kbd> macht jede dieser Aktionen in einem Schritt rückgängig. <kbd>Esc</kbd> oder ein Klick auf die leere Fläche hebt die Auswahl auf.
+
+Oben neben den Werkzeugen steht, wie viele Blöcke ausgewählt sind.
+
+## Kopieren ab hier
+
+Kopierst du einen **einzelnen** Block (<kbd>Strg</kbd>+<kbd>C</kbd>, Rechtsklick → **Kopieren**, <kbd>Strg</kbd>+<kbd>X</kbd>), kommen immer **alle Blöcke darunter** mit – genau wie beim Ziehen. Willst du nur einen Block aus der Mitte, zieh ihn zuerst heraus oder wähle mit dem Rahmen genau die Blöcke, die du brauchst.
 
 Weiter mit [Fehler finden](fehler-finden.md).

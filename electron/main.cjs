@@ -55,7 +55,18 @@ ipcMain.handle('export-folder', async (_e, { files }) => {
   const res = await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] });
   if (res.canceled || !res.filePaths[0]) return null;
   const dir = res.filePaths[0];
-  for (const f of files) await fs.writeFile(path.join(dir, path.basename(f.name)), f.content, 'utf8');
+  for (const f of files) {
+    // keep explorer folders as sub directories – but never leave the chosen directory
+    const parts = String(f.name)
+      .split(/[\\/]+/)
+      .map((x) => x.replace(/[<>:"|?*\u0000-\u001f]/g, '').trim())
+      .filter((x) => x && x !== '.' && x !== '..');
+    if (!parts.length) continue;
+    const target = path.resolve(dir, ...parts);
+    if (!target.startsWith(path.resolve(dir) + path.sep)) continue;
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, f.content, 'utf8');
+  }
   return dir;
 });
 
