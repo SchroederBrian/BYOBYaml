@@ -1,0 +1,17 @@
+{
+ "values": [
+  "k8s_hpa.NAME=\"web\"",
+  "k8s_hpa.TARGET=\"web\"",
+  "k8s_hpa.MIN=\"2\"",
+  "k8s_hpa.MAX=\"10\"",
+  "hpa_metric.RES=\"cpu\"",
+  "hpa_metric.PCT=\"70\"",
+  "hpa_metric.RES=\"memory\"",
+  "hpa_metric.PCT=\"80\"",
+  "hpa_behavior.S=\"300\""
+ ],
+ "yaml": "apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: web\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: web\n  minReplicas: 2\n  maxReplicas: 10\n  metrics:\n    - type: Resource\n      resource:\n        name: cpu\n        target:\n          type: Utilization\n          averageUtilization: 70\n    - type: Resource\n      resource:\n        name: memory\n        target:\n          type: Utilization\n          averageUtilization: 80\n  behavior:\n    scaleDown:\n      stabilizationWindowSeconds: 300\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

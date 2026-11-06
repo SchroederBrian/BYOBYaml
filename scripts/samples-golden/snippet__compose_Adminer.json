@@ -1,0 +1,17 @@
+{
+ "values": [
+  "compose_service.NAME=\"adminer\"",
+  "compose_service.IMAGE=\"adminer:4\"",
+  "svc_port.HOST=\"8081\"",
+  "svc_port.CONT=\"8080\"",
+  "svc_port.PROTO=\"tcp\"",
+  "svc_depends.NAME=\"db\"",
+  "svc_depends.COND=\"service_started\"",
+  "svc_depends.RESTART=\"FALSE\"",
+  "svc_depends.REQUIRED=\"TRUE\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

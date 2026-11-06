@@ -82,3 +82,21 @@ bun run docs:gen
 ```
 
 Das erzeugt die [Block-Referenz](/docs/referenz) neu, inklusive Beispiel-YAML des neuen Blocks.
+
+## Einen Wertblock hinzufügen
+
+Wertblöcke (die runden Blöcke für Eingabefelder) sind keine Stapelblöcke und stehen nicht in `defs.ts`, sondern als Eintrag in `VALUE_SPECS` in `src/blocks/values.ts`:
+
+```ts
+{
+  type: 'val_beispiel', msg: 'Beispiel %1', args: [T('TEXT', '')],
+  tip: 'Was der Block macht.',
+  eval: (v, env) => String(v.TEXT).toUpperCase(),
+}
+```
+
+- `args` gibt die Eingaben an. Text- und Zahlenfelder werden zu Steckplätzen, in die sich weitere Wertblöcke stecken lassen. `eval` bekommt sie schon ausgewertet (Zahlen als `number`).
+- Zufall immer über `env.rng()`, die Zeit über `env.session.now`. Nie `Math.random()` oder `Date.now()`, sonst sind Exporte nicht reproduzierbar testbar.
+- Fehler als `throw new Error('Text auf Deutsch')`. Der Block zeigt dann die Warnung.
+- Trag den Typ in `VALUE_GROUPS` ein (Abschnitt der Palette). Ein Test prüft, dass jeder Block in genau einer Gruppe steht.
+- Teste mit einem Fall in `scripts/value-blocks.test.ts`, danach `bun run docs:gen`.

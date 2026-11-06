@@ -1,0 +1,10 @@
+{
+ "values": [
+  "meta_image_trigger.IST=\"app:latest\"",
+  "meta_image_trigger.CONT=\"app\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

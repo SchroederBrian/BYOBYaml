@@ -89,13 +89,27 @@ export function prepareWebSource({ repoRoot, destination, webRef = 'deploy/aapan
       let server = readFileSync(serverEntry, 'utf8');
       if (!server.includes("from './custom-blocks'")) {
         server = "import { mountCustomBlocks, CUSTOM_BLOCK_TABLES } from './custom-blocks';\n" + server;
-        const migrations = '[...stmts, ...MARKET_TABLES]';
-        if (!server.includes(migrations)) throw new Error('Cannot locate custom-block database migration insertion point');
-        server = server.replace(migrations, '[...stmts, ...MARKET_TABLES, ...CUSTOM_BLOCK_TABLES]');
+        // the web branch may list more migrations after MARKET_TABLES (e.g. GitHub tables)
+        const migrations = /\[\.\.\.stmts, \.\.\.MARKET_TABLES(?=[,\]])/;
+        if (!migrations.test(server)) throw new Error('Cannot locate custom-block database migration insertion point');
+        server = server.replace(migrations, '$&, ...CUSTOM_BLOCK_TABLES');
         const anchor = "// ---------- marketplace";
         if (!server.includes(anchor)) throw new Error('Cannot locate authenticated custom-block route insertion point');
         server = server.replace(anchor, "  mountCustomBlocks(api, { pool, requireUser });\n\n" + anchor);
         writeFileSync(serverEntry, server);
+      }
+    }
+    if (existsSync(join(destination,'server/images.ts')) && existsSync(serverEntry)) {
+      let server=readFileSync(serverEntry,'utf8');
+      if(!server.includes("from './images'")) {
+        server="import { mountImageBrowser } from './images';\n"+server;
+        const anchor='// ---------- marketplace';
+        if(!server.includes(anchor))throw new Error('Cannot locate image browser route insertion point');
+        server=server.replace(anchor,'mountImageBrowser(api);\n\n'+anchor);
+        const cors="market(\\/|$)|auth";
+        if(!server.includes(cors))throw new Error('Cannot locate public image browser CORS insertion point');
+        server=server.replace(cors,"market(\\/|$)|images(\\/|$)|auth");
+        writeFileSync(serverEntry,server);
       }
     }
     const marketEntry = join(destination, 'server/market.ts');

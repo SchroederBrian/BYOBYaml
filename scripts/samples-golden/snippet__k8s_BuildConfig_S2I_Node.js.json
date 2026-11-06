@@ -1,0 +1,20 @@
+{
+ "values": [
+  "k8s_buildconfig.NAME=\"app-build\"",
+  "k8s_buildconfig.OUT=\"app:latest\"",
+  "k8s_buildconfig.RUN=\"Serial\"",
+  "bc_git.URI=\"https://github.com/example/app.git\"",
+  "bc_git.REF=\"main\"",
+  "bc_git.DIR=\"\"",
+  "bc_s2i.IST=\"nodejs:20-ubi9\"",
+  "bc_s2i.NS=\"openshift\"",
+  "bc_trigger.T=\"ConfigChange\"",
+  "bc_trigger.SECRET=\"\"",
+  "bc_trigger.T=\"ImageChange\"",
+  "bc_trigger.SECRET=\"\""
+ ],
+ "yaml": "apiVersion: build.openshift.io/v1\nkind: BuildConfig\nmetadata:\n  name: app-build\nspec:\n  runPolicy: Serial\n  source:\n    type: Git\n    git:\n      uri: https://github.com/example/app.git\n      ref: main\n  strategy:\n    type: Source\n    sourceStrategy:\n      from:\n        kind: ImageStreamTag\n        name: nodejs:20-ubi9\n        namespace: openshift\n  output:\n    to:\n      kind: ImageStreamTag\n      name: app:latest\n  triggers:\n    - type: ConfigChange\n    - type: ImageChange\n      imageChange: {}\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

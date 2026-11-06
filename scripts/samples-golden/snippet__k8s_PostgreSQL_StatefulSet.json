@@ -1,0 +1,29 @@
+{
+ "values": [
+  "k8s_statefulset.NAME=\"postgres\"",
+  "k8s_statefulset.REPLICAS=\"1\"",
+  "k8s_statefulset.SVC=\"postgres\"",
+  "sts_volume_claim.NAME=\"data\"",
+  "sts_volume_claim.SIZE=\"10Gi\"",
+  "pod_container.NAME=\"postgres\"",
+  "pod_container.IMAGE=\"postgres:16\"",
+  "c_port.PORT=\"5432\"",
+  "c_port.NAME=\"pg\"",
+  "c_port.PROTO=\"TCP\"",
+  "c_env_ref.K=\"POSTGRES_PASSWORD\"",
+  "c_env_ref.SRC=\"secretKeyRef\"",
+  "c_env_ref.NAME=\"postgres\"",
+  "c_env_ref.KEY=\"password\"",
+  "c_env_ref.OPT=\"FALSE\"",
+  "c_env.K=\"PGDATA\"",
+  "c_env.V=\"/var/lib/postgresql/data/pgdata\"",
+  "c_mount.NAME=\"data\"",
+  "c_mount.PATH=\"/var/lib/postgresql/data\"",
+  "c_mount.RO=\"FALSE\"",
+  "c_mount.SUB=\"\""
+ ],
+ "yaml": "apiVersion: apps/v1\nkind: StatefulSet\nmetadata:\n  name: postgres\nspec:\n  serviceName: postgres\n  replicas: 1\n  selector:\n    matchLabels:\n      app: postgres\n  template:\n    metadata:\n      labels:\n        app: postgres\n    spec:\n      containers:\n        - name: postgres\n          image: postgres:16\n          ports:\n            - name: pg\n              containerPort: 5432\n          env:\n            - name: POSTGRES_PASSWORD\n              valueFrom:\n                secretKeyRef:\n                  name: postgres\n                  key: password\n            - name: PGDATA\n              value: /var/lib/postgresql/data/pgdata\n          volumeMounts:\n            - name: data\n              mountPath: /var/lib/postgresql/data\n  volumeClaimTemplates:\n    - metadata:\n        name: data\n      spec:\n        accessModes:\n          - ReadWriteOnce\n        resources:\n          requests:\n            storage: 10Gi\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

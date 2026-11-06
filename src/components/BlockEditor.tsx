@@ -3,11 +3,14 @@ import * as Blockly from 'blockly/core';
 import * as De from 'blockly/msg/de';
 import { buildTheme, buildToolbox, editorHooks, FIXED_FLYOUT, registerBlocks, registerDynamicCategories, START_SCALE } from '../blocks/register';
 import { generate, GenResult } from '../blocks/generator';
+import { appendState, argValue, loadState, type ValueSession } from '../blocks/value';
 import { FileKind, Snippet } from '../project';
 import { CanvasMode, enableSelection, patchChainCopy, Selection } from '../blocks/multiselect';
 import { searchBlocks, SEARCH_PAGE_SIZE } from '../blocks/search';
 import { Icon } from './Icons';
 import type { CustomBlockDefinition } from '../custom-blocks/model';
+import { imageFields, imageTarget, setImagePicker } from '../registry/editor';
+import type { ImageTarget } from '../registry/types';
 import '../styles/block-search.css';
 
 export interface BlockEditorHandle {
@@ -21,11 +24,15 @@ export interface BlockEditorHandle {
   insert(blockState: any): void;
   setMode(m: CanvasMode): void;
   clearSelection(): void;
+  imageTargets(): ImageTarget[];
+  addImage(reference: string): void;
 }
 
 interface Props {
   fileKey: string;
   vars: Record<string, string>;
+  /** seed and clock for value blocks in the live preview; change it to roll new values */
+  session: ValueSession;
   userSnippets: Snippet[];
   onChange: (res: GenResult) => void;
   onSaveSnippet: (state: any) => void;
@@ -34,9 +41,10 @@ interface Props {
   onSelectionChange?: (count: number) => void;
   onDesignCustomBlocks?: (definition?: CustomBlockDefinition) => void;
   customLibraryVersion?: string;
+  onBrowseImage?: (target: ImageTarget) => void;
 }
 
-const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ fileKey, vars, userSnippets, onChange, onSaveSnippet, onShareSnippet, mode, onSelectionChange, onDesignCustomBlocks, customLibraryVersion }, ref) {
+const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ fileKey, vars, session, userSnippets, onChange, onSaveSnippet, onShareSnippet, mode, onSelectionChange, onDesignCustomBlocks, customLibraryVersion, onBrowseImage }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [searchLimit, setSearchLimit] = useState(SEARCH_PAGE_SIZE);
@@ -55,6 +63,8 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   const varsRef = useRef(vars);
   const kindRef = useRef<FileKind>('compose');
   varsRef.current = vars;
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
   const selection = useRef<Selection | null>(null);
   const selChange = useRef(onSelectionChange);
   selChange.current = onSelectionChange;
@@ -64,13 +74,14 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   editorHooks.onShareSnippet = onShareSnippet;
   editorHooks.onDesignCustomBlocks = onDesignCustomBlocks;
   editorHooks.userSnippets = () => snippetsRef.current;
+  setImagePicker(onBrowseImage);
 
   // never report (and thereby save) a workspace that has not been loaded with a file yet
   const loaded = useRef<string | null>(null);
   const fileKeyRef = useRef(fileKey);
   fileKeyRef.current = fileKey;
   const emit = () => {
-    if (ws.current && loaded.current === fileKeyRef.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current, { fileKind:kindRef.current, passThroughUnknownVars: kindRef.current === 'compose' }));
+    if (ws.current && loaded.current === fileKeyRef.current && !loading.current) onChangeRef.current(generate(ws.current, varsRef.current, { fileKind:kindRef.current, passThroughUnknownVars: kindRef.current === 'compose', session: sessionRef.current }));
   };
   const updatePalette = () => {
     const workspace = ws.current;
@@ -139,7 +150,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
   useEffect(() => {
     emit();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vars]);
+  }, [vars, session]);
 
   // user snippets changed → refresh an open "Meine Vorlagen" flyout
   useEffect(() => {
@@ -159,7 +170,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
         updatePalette();
         Blockly.Events.disable();
         w.clear();
-        if (state) Blockly.serialization.workspaces.load(state, w);
+        if (state) loadState(state, w);
         if (layout) w.cleanUp();
       } finally {
         Blockly.Events.enable();
@@ -200,7 +211,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
       if (!w) return;
       const m = w.getMetricsManager().getViewMetrics(true);
       const { x: _x, y: _y, ...rest } = blockState ?? {};
-      const block = Blockly.serialization.blocks.append({ ...rest, x: m.left + 60, y: m.top + 40 }, w) as Blockly.BlockSvg;
+      const block = appendState({ ...rest, x: m.left + 60, y: m.top + 40 }, w) as Blockly.BlockSvg;
       Blockly.common.setSelected(block);
       w.scrollBoundsIntoView?.(block.getBoundingRectangle());
     },
@@ -209,6 +220,37 @@ const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditor({ 
     },
     clearSelection() {
       selection.current?.clear();
+    },
+    imageTargets() {
+      const workspace=ws.current;if(!workspace)return [];
+      const selected=Blockly.common.getSelected();
+      return workspace.getAllBlocks(false).sort((a,b)=>Number(b===selected)-Number(a===selected)).flatMap((block)=>imageFields(block).map((field)=>imageTarget(block,field)));
+    },
+    addImage(reference) {
+      const workspace=ws.current;
+      if(!workspace||loaded.current!==fileKeyRef.current)throw new Error('Bitte zuerst eine Datei öffnen.');
+      const base=reference.split('@')[0].split('/').at(-1)!.split(':')[0].toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,50)||'app';
+      let name=base,index=2;const used=new Set(workspace.getAllBlocks(false).map((block)=>argValue(block,'NAME')));while(used.has(name))name=`${base}-${index++}`;
+      const attach=(parent:Blockly.Block,child:Blockly.Block)=>{let last=parent;while(last.getNextBlock())last=last.getNextBlock()!;last.nextConnection!.connect(child.previousConnection!);};
+      Blockly.Events.setGroup(true);
+      try{
+        let block:Blockly.BlockSvg;
+        if(kindRef.current==='dockerfile'){
+          let root:Blockly.Block|undefined=workspace.getTopBlocks(false).find((block)=>block.type==='df_file'&&block.isEnabled());
+          if(!root)root=appendState({type:'df_file',x:55,y:55},workspace);
+          block=appendState({type:'df_from',fields:{IMAGE:reference}},workspace) as Blockly.BlockSvg;attach(root,block);
+        }else if(kindRef.current==='compose'){
+          let root:Blockly.Block|undefined=workspace.getTopBlocks(false).find((block)=>block.type==='compose_file'&&block.isEnabled());
+          if(!root)root=appendState({type:'compose_file',fields:{NAME:''},x:55,y:55},workspace);
+          block=appendState({type:'compose_service',fields:{NAME:name,IMAGE:reference}},workspace) as Blockly.BlockSvg;attach(root,block);
+        }else{
+          let root:Blockly.Block|undefined=workspace.getTopBlocks(false).find((block)=>['k8s_deployment','k8s_deploymentconfig','k8s_statefulset','k8s_daemonset','k8s_job','k8s_cronjob'].includes(block.type)&&block.isEnabled());
+          if(!root)root=appendState({type:'k8s_deployment',fields:{NAME:name,REPLICAS:'1'},x:55,y:55},workspace);
+          block=appendState({type:'pod_container',fields:{NAME:name,IMAGE:reference}},workspace) as Blockly.BlockSvg;attach(root,block);
+        }
+        Blockly.common.setSelected(block);workspace.centerOnBlock(block.id);
+      }finally{Blockly.Events.setGroup(false);}
+      emit();
     },
   }));
 

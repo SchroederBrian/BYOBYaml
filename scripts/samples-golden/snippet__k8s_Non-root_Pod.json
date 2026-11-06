@@ -1,0 +1,12 @@
+{
+ "values": [
+  "pod_security.NONROOT=\"TRUE\"",
+  "pod_security.FSGROUP=\"1000\"",
+  "pod_security.USER=\"\"",
+  "pod_security.GROUP=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

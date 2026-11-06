@@ -1,0 +1,17 @@
+{
+ "values": [
+  "k8s_custom.NAME=\"allow-from-router\"",
+  "k8s_custom.KIND=\"NetworkPolicy\"",
+  "k8s_custom.API=\"networking.k8s.io/v1\"",
+  "x_field.PATH=\"spec.podSelector\"",
+  "x_field.VAL=\"{}\"",
+  "x_list.PATH=\"spec.ingress\"",
+  "x_list.VAL=\"{from: [{namespaceSelector: {matchLabels: {network.openshift.io/policy-group: ingress}}}]}\"",
+  "x_field.PATH=\"spec.policyTypes\"",
+  "x_field.VAL=\"[Ingress]\""
+ ],
+ "yaml": "apiVersion: networking.k8s.io/v1\nkind: NetworkPolicy\nmetadata:\n  name: allow-from-router\nspec:\n  ingress:\n    - from:\n        - namespaceSelector:\n            matchLabels:\n              network.openshift.io/policy-group: ingress\n  policyTypes:\n    - Ingress\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

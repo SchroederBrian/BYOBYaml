@@ -1,0 +1,31 @@
+{
+ "values": [
+  "compose_service.NAME=\"db\"",
+  "compose_service.IMAGE=\"postgres:16-alpine\"",
+  "svc_env.K=\"POSTGRES_USER\"",
+  "svc_env.V=\"app\"",
+  "svc_env.K=\"POSTGRES_PASSWORD\"",
+  "svc_env.V=\"change-me\"",
+  "svc_env.K=\"POSTGRES_DB\"",
+  "svc_env.V=\"app\"",
+  "svc_volume.SRC=\"pgdata\"",
+  "svc_volume.DST=\"/var/lib/postgresql/data\"",
+  "svc_volume.RO=\"FALSE\"",
+  "svc_healthcheck.MODE=\"CMD-SHELL\"",
+  "svc_healthcheck.CMD=\"pg_isready -U app\"",
+  "svc_healthcheck.INT=\"10s\"",
+  "svc_healthcheck.TO=\"5s\"",
+  "svc_healthcheck.RET=\"5\"",
+  "svc_healthcheck.START=\"\"",
+  "svc_healthcheck.SINT=\"\"",
+  "svc_restart.R=\"unless-stopped\"",
+  "compose_volume.NAME=\"pgdata\"",
+  "compose_volume.DRIVER=\"__none__\"",
+  "compose_volume.EXTERNAL=\"FALSE\"",
+  "compose_volume.XNAME=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

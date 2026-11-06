@@ -1,0 +1,11 @@
+{
+ "values": [
+  "svc_logging.DRV=\"json-file\"",
+  "svc_logging.SIZE=\"10m\"",
+  "svc_logging.FILES=\"3\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

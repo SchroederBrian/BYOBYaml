@@ -1,0 +1,13 @@
+{
+ "values": [
+  "c_security.NOESC=\"TRUE\"",
+  "c_security.ROFS=\"TRUE\"",
+  "c_security.DROP=\"TRUE\"",
+  "x_field.PATH=\"securityContext.seccompProfile\"",
+  "x_field.VAL=\"{type: RuntimeDefault}\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

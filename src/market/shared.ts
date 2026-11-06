@@ -1,6 +1,8 @@
 // Marketplace data model + validation, shared by the app (before upload) and the server (on upload).
 // No Blockly / DOM imports here: the server bundles this file.
 import { ALL_BLOCKS, SPEC_BY_TYPE } from '../blocks/defs';
+import { LITERAL_TYPES, slotFields } from '../blocks/slots';
+import { VALUE_SPECS } from '../blocks/values';
 import { cleanFolder } from '../folders';
 import type { FileKind, Variable } from '../project';
 
@@ -82,7 +84,7 @@ export interface PublishInput {
 }
 
 // ------------------------------------------------------------------ helpers
-const KNOWN = new Set(ALL_BLOCKS.map((b) => b.type));
+const KNOWN = new Set([...ALL_BLOCKS.map((b) => b.type), ...VALUE_SPECS.map((b) => b.type), ...LITERAL_TYPES]);
 const COMPOSE_CATS = new Set(['compose', 'service']);
 const K8S_CATS = new Set(['resources', 'metadata', 'pod', 'container', 'network', 'data', 'build', 'scaling']);
 
@@ -194,10 +196,11 @@ export function checkData(kind: ItemKind, data: any): Checked {
   if (!types.length) throw new Error('Es sind keine Blöcke enthalten.');
   const unknown = [...new Set(types.filter((t) => !KNOWN.has(t)))];
   if (unknown.length) throw new Error(`Unbekannte Blöcke: ${unknown.slice(0, 5).join(', ')}. Bitte BYOBYaml aktualisieren.`);
-  if (types.length > LIMITS.blocks) throw new Error(`Zu groß: höchstens ${LIMITS.blocks} Blöcke.`);
+  const counted = types.filter((t) => !LITERAL_TYPES.has(t));
+  if (counted.length > LIMITS.blocks) throw new Error(`Zu groß: höchstens ${LIMITS.blocks} Blöcke.`);
   const bytes = JSON.stringify(clean).length;
   if (bytes > LIMITS.bytes) throw new Error(`Zu groß: höchstens ${Math.round(LIMITS.bytes / 1000)} KB.`);
-  return { target: targetOf(types), blockCount: types.length, fileCount, bytes, data: clean };
+  return { target: targetOf(types), blockCount: counted.length, fileCount, bytes, data: clean };
 }
 
 function envsOf(envs: any): string[] {
@@ -236,9 +239,10 @@ export function findSecrets(data: ItemData): SecretHint[] {
   const walk = (j: any, where: string, inSecret: boolean) => {
     if (!j || typeof j !== 'object') return;
     if (Array.isArray(j)) return j.forEach((x) => walk(x, where, inSecret));
+    if (LITERAL_TYPES.has(j.type)) return; // read through the owning block below
     const isSecretDoc = inSecret || SECRET_BLOCKS.has(j.type);
-    if (j.fields && typeof j.fields === 'object') {
-      const f = j.fields;
+    if ((j.fields && typeof j.fields === 'object') || j.inputs) {
+      const f = slotFields(j);
       const keyName = String(f.K ?? f.NAME ?? f.KEY ?? '');
       for (const [fk, fv] of Object.entries(f)) {
         const val = String(fv ?? '');

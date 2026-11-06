@@ -1,0 +1,15 @@
+{
+ "values": [
+  "svc_healthcheck.MODE=\"CMD-SHELL\"",
+  "svc_healthcheck.CMD=\"curl -fsS http://localhost:3000/health || exit 1\"",
+  "svc_healthcheck.INT=\"30s\"",
+  "svc_healthcheck.TO=\"5s\"",
+  "svc_healthcheck.RET=\"3\"",
+  "svc_healthcheck.START=\"\"",
+  "svc_healthcheck.SINT=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

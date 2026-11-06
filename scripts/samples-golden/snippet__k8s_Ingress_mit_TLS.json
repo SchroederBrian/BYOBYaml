@@ -1,0 +1,18 @@
+{
+ "values": [
+  "k8s_ingress.NAME=\"web\"",
+  "k8s_ingress.CLASS=\"nginx\"",
+  "ingress_annotation_ssl.ISSUER=\"letsencrypt\"",
+  "ingress_tls.HOST=\"app.example.com\"",
+  "ingress_tls.SECRET=\"web-tls\"",
+  "ingress_rule.HOST=\"app.example.com\"",
+  "ingress_rule.PATH=\"/\"",
+  "ingress_rule.SVC=\"web\"",
+  "ingress_rule.PORT=\"80\"",
+  "ingress_rule.PTYPE=\"Prefix\""
+ ],
+ "yaml": "apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: web\n  annotations:\n    cert-manager.io/cluster-issuer: letsencrypt\nspec:\n  ingressClassName: nginx\n  tls:\n    - hosts:\n        - app.example.com\n      secretName: web-tls\n  rules:\n    - host: app.example.com\n      http:\n        paths:\n          - path: /\n            pathType: Prefix\n            backend:\n              service:\n                name: web\n                port:\n                  number: 80\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

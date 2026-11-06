@@ -3,6 +3,7 @@ import type { PointerEvent } from 'react';
 import { buildDependencyGraph, type DependencyGraph as Graph, type DependencyNode } from '../dependencies';
 import { resolveVariables, type Project } from '../project';
 import { yamlForFile } from '../projectYaml';
+import { newSession } from '../blocks/value';
 import { Icon } from './Icons';
 import '../styles/dependencies.css';
 
@@ -28,7 +29,8 @@ export default function DependencyGraph({ project, activeFileId, onOpen, graphIn
     setLoading(true);
     const timer = window.setTimeout(() => {
       // Deliberately resolve ordinary variables only. The graph never accesses a vault.
-      setGraph(buildDependencyGraph(project.files, (file) => yamlForFile(file, resolveVariables(project, file))));
+      const session = newSession({ envName: project.activeEnv, projectName: project.title }); // one seed so files agree on random names
+      setGraph(buildDependencyGraph(project.files, (file) => yamlForFile(file, resolveVariables(project, file), session)));
       setLoading(false);
     }, 180);
     return () => window.clearTimeout(timer);

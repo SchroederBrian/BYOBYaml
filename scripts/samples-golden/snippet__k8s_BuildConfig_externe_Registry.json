@@ -1,0 +1,23 @@
+{
+ "values": [
+  "k8s_buildconfig.NAME=\"app-build\"",
+  "k8s_buildconfig.OUT=\"\"",
+  "k8s_buildconfig.RUN=\"Serial\"",
+  "bc_git.URI=\"https://git.example.com/team/app.git\"",
+  "bc_git.REF=\"main\"",
+  "bc_git.DIR=\"\"",
+  "bc_docker.FILE=\"Dockerfile\"",
+  "bc_pull_secret.S=\"registry-secret\"",
+  "bc_output.KIND=\"DockerImage\"",
+  "bc_output.NAME=\"registry.example.com/team/app:latest\"",
+  "bc_output.SECRET=\"registry-secret\"",
+  "bc_history.OK=\"2\"",
+  "bc_history.FAIL=\"1\"",
+  "bc_trigger.T=\"ConfigChange\"",
+  "bc_trigger.SECRET=\"\""
+ ],
+ "yaml": "apiVersion: build.openshift.io/v1\nkind: BuildConfig\nmetadata:\n  name: app-build\nspec:\n  runPolicy: Serial\n  source:\n    type: Git\n    git:\n      uri: https://git.example.com/team/app.git\n      ref: main\n  strategy:\n    type: Docker\n    dockerStrategy:\n      dockerfilePath: Dockerfile\n      pullSecret:\n        name: registry-secret\n  output:\n    to:\n      kind: DockerImage\n      name: registry.example.com/team/app:latest\n    pushSecret:\n      name: registry-secret\n  triggers:\n    - type: ConfigChange\n  successfulBuildsHistoryLimit: 2\n  failedBuildsHistoryLimit: 1\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

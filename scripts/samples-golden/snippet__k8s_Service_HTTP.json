@@ -1,0 +1,15 @@
+{
+ "values": [
+  "k8s_service.NAME=\"web\"",
+  "k8s_service.APP=\"web\"",
+  "k8s_service.TYPE=\"ClusterIP\"",
+  "svc_k8s_port.PORT=\"80\"",
+  "svc_k8s_port.TARGET=\"8080\"",
+  "svc_k8s_port.NAME=\"http\"",
+  "svc_k8s_port.PROTO=\"TCP\""
+ ],
+ "yaml": "apiVersion: v1\nkind: Service\nmetadata:\n  name: web\nspec:\n  selector:\n    app: web\n  ports:\n    - name: http\n      port: 80\n      targetPort: 8080\n  type: ClusterIP\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

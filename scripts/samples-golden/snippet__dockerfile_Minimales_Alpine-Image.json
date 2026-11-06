@@ -1,0 +1,13 @@
+{
+ "values": [
+  "df_from.IMAGE=\"alpine:3\"",
+  "df_from.STAGE=\"\"",
+  "df_from.PLATFORM=\"\"",
+  "df_workdir.PATH=\"/app\"",
+  "df_cmd.ARGS=\"sh\""
+ ],
+ "yaml": "# syntax=docker/dockerfile:1\n\nFROM alpine:3\nWORKDIR /app\nCMD [\"sh\"]\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

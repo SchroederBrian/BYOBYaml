@@ -1,0 +1,17 @@
+{
+ "values": [
+  "k8s_job.NAME=\"migrate\"",
+  "k8s_job.BACKOFF=\"2\"",
+  "pod_container.NAME=\"migrate\"",
+  "pod_container.IMAGE=\"registry.example.com/web:1.0\"",
+  "c_command.CMD=\"bin/migrate --all\"",
+  "c_env_from.SRC=\"secretRef\"",
+  "c_env_from.NAME=\"db-credentials\"",
+  "c_env_from.PREFIX=\"\"",
+  "c_env_from.OPT=\"FALSE\""
+ ],
+ "yaml": "apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: migrate\nspec:\n  backoffLimit: 2\n  template:\n    metadata:\n      labels:\n        app: migrate\n    spec:\n      containers:\n        - name: migrate\n          image: registry.example.com/web:1.0\n          command:\n            - bin/migrate\n            - --all\n          envFrom:\n            - secretRef:\n                name: db-credentials\n      restartPolicy: Never\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

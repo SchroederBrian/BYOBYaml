@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { newSession } from '../blocks/value';
 import { buildHelmChart, downloadHelmChart, helmChartName, type HelmChart } from '../helm';
 import type { Project } from '../project';
 import { Modal } from './Dialogs';
@@ -19,10 +20,12 @@ export default function HelmExport({ project, activeFileId, onClose, onOpen, fla
   const [error, setError] = useState('');
   const [previewPath, setPreviewPath] = useState('Chart.yaml');
   const source = useMemo(() => ({ ...project, files: project.files }), [project]);
+  // one export = one seed: value blocks keep their values while this dialog is open
+  const session = useMemo(() => newSession({ envName: project.activeEnv, projectName: project.title }), []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setLoading(true); setError('');
     const timer = window.setTimeout(() => {
-      try { setChart(buildHelmChart(source, { name, version, description, fileIds: selected })); }
+      try { setChart(buildHelmChart(source, { name, version, description, fileIds: selected, session })); }
       catch { setChart(null); setError('Chart konnte nicht erstellt werden. Bitte die ausgewählten Dateien und Block-Probleme prüfen.'); }
       setLoading(false);
     }, 200);

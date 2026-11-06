@@ -1,0 +1,17 @@
+{
+ "values": [
+  "compose_service.NAME=\"mailpit\"",
+  "compose_service.IMAGE=\"axllent/mailpit:latest\"",
+  "svc_port.HOST=\"8025\"",
+  "svc_port.CONT=\"8025\"",
+  "svc_port.PROTO=\"tcp\"",
+  "svc_port.HOST=\"1025\"",
+  "svc_port.CONT=\"1025\"",
+  "svc_port.PROTO=\"tcp\"",
+  "svc_profile.P=\"dev\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

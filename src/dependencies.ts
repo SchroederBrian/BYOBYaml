@@ -1,5 +1,6 @@
 import { parseAllDocuments } from 'yaml';
 import type { ProjectFile } from './project';
+import { slotFields } from './blocks/slots';
 
 export interface DependencyNode {
   id: string;
@@ -105,7 +106,7 @@ export function buildDependencyGraph(files: ProjectFile[], getYaml: (file: Proje
         if (root.type !== 'df_file' || root.disabledReasons?.length || root.enabled === false) continue;
         for (let block = root.next?.block; block && ++count < 5000; block = block.next?.block) {
           if (block.disabledReasons?.length || block.enabled === false) continue;
-          const fields = block.fields ?? {};
+          const fields = slotFields(block);
           if (block.type === 'df_from') {
             const image = nameOf(fields.IMAGE) || 'alpine:3', base = source(image), name = nameOf(fields.STAGE) || `Phase ${index}`;
             current = `docker-stage:${file.id}:${index}`;

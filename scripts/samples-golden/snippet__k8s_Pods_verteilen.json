@@ -1,0 +1,10 @@
+{
+ "values": [
+  "x_field.PATH=\"spec.template.spec.topologySpreadConstraints\"",
+  "x_field.VAL=\"[{maxSkew: 1, topologyKey: kubernetes.io/hostname, whenUnsatisfiable: ScheduleAnyway, labelSelector: {matchLabels: {app: web}}}]\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

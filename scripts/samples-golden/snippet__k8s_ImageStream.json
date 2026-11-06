@@ -1,0 +1,10 @@
+{
+ "values": [
+  "k8s_imagestream.NAME=\"app\"",
+  "k8s_imagestream.LOCAL=\"TRUE\""
+ ],
+ "yaml": "apiVersion: image.openshift.io/v1\nkind: ImageStream\nmetadata:\n  name: app\nspec:\n  lookupPolicy:\n    local: true\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

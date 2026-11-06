@@ -1,0 +1,13 @@
+{
+ "values": [
+  "k8s_configmap.NAME=\"app-config\"",
+  "data_entry.K=\"APP_ENV\"",
+  "data_entry.V=\"production\"",
+  "data_entry.K=\"LOG_LEVEL\"",
+  "data_entry.V=\"info\""
+ ],
+ "yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app-config\ndata:\n  APP_ENV: production\n  LOG_LEVEL: info\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

@@ -5,7 +5,9 @@ import * as Blockly from 'blockly/core';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { ALL_BLOCKS } from '../src/blocks/defs';
+import { VALUE_BY_TYPE, VALUE_GROUPS, VALUE_SPECS } from '../src/blocks/values';
 import { registerBlocks } from '../src/blocks/register';
+import { loadState } from '../src/blocks/value';
 import { generate } from '../src/blocks/generator';
 import { ArgDef, BlockSpec, CATEGORIES, CatId } from '../src/blocks/types';
 import { b, B, chainJson, wsState } from '../src/project';
@@ -49,7 +51,7 @@ function wrap(blocks: B[]): B[] {
 
 function yamlOf(blocks: B[]): { yaml: string; warnings: string[] } {
   const ws = new Blockly.Workspace();
-  Blockly.serialization.workspaces.load(wsState({ ...chainJson(blocks), x: 0, y: 0 }), ws);
+  loadState(wsState({ ...chainJson(blocks), x: 0, y: 0 }), ws);
   const r = generate(ws, {}, { fileKind: blocks[0]?.type === 'df_file' ? 'dockerfile' : undefined });
   ws.dispose();
   return { yaml: r.yaml, warnings: r.warnings.map((w) => w.msg) };
@@ -111,6 +113,7 @@ const CAT_INTRO: Record<CatId, string> = {
   build: 'OpenShift-Builds: ImageStream-Tags und BuildConfig-Quellen, -Strategien und -Trigger.',
   scaling: 'Metriken und Verhalten des HorizontalPodAutoscalers.',
   extras: 'Notausgänge für alles ohne eigenen Block. Sie wirken auf das **aktuelle Objekt**: unter einem Startblock die Ressource, in einem Service den Service, in einem Container den Container.',
+  values: 'Runde Wertblöcke für Eingabefelder (siehe Funktionen → Wertblöcke).',
 };
 
 const SLUG: Record<CatId, string> = {
@@ -128,11 +131,13 @@ const SLUG: Record<CatId, string> = {
   build: 'build',
   scaling: 'skalierung',
   extras: 'extras',
+  values: 'werte',
 };
 
 let pos = 1;
 for (const cat of CATEGORIES) {
   const specs = ALL_BLOCKS.filter((s) => s.cat === cat.id);
+  if (!specs.length) continue; // value blocks: see the Werte page below
   const out: string[] = [
     '---',
     `title: ${JSON.stringify(cat.name)}`,
@@ -169,6 +174,27 @@ for (const cat of CATEGORIES) {
     out.push('<details>', '<summary>Erzeugtes YAML mit Standardwerten</summary>', '', '```yaml', yaml.trimEnd() || '# (kein Output – reiner Notiz-Block)', '```', '', '</details>', '');
   }
   writeFileSync(join(OUT, `${SLUG[cat.id]}.mdx`), out.join('\n'));
+}
+
+// ---------- value blocks page ----------
+{
+  const defaultText = (a: ArgDef) => (a.kind === 'dd' ? code(a.options[0][0]) : a.kind === 'chk' ? (a.value ? 'an' : 'aus') : a.value === '' ? '(leer)' : code(String(a.value)));
+  const out: string[] = [
+    '---', 'title: "Werte"', 'sidebar_label: "Werte"', `sidebar_position: ${pos++}`, 'description: "Alle Wertblöcke: Zufall, Zeit, Text, Rechnen, Logik und Kontext."', '---', '',
+    '{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}', '',
+    '# <span className="cat-dot" style={{ background: \'#7d9a2b\' }} /> Werte', '',
+    `${VALUE_SPECS.length} runde Blöcke, die in jedes Text- oder Zahlenfeld passen und beim Export berechnet werden. Wie das funktioniert, steht unter [Wertblöcke](../funktionen/wertbloecke.md).`, '',
+  ];
+  for (const group of VALUE_GROUPS) {
+    out.push(`## ${group.title}`, '', '| Block | Felder (Standard) | Wirkung |', '| --- | --- | --- |');
+    for (const type of group.types) {
+      const spec = VALUE_BY_TYPE[type];
+      const label = spec.msg.replace(/%\d+/g, '…').replace(/\s+/g, ' ').trim();
+      out.push(`| ${esc(label)} | ${(spec.args ?? []).map((a) => `${code(a.name)} ${defaultText(a)}`).join(', ') || '–'} | ${esc(spec.tip)} |`);
+    }
+    out.push('');
+  }
+  writeFileSync(join(OUT, `${SLUG.values}.mdx`), out.join('\n'));
 }
 
 writeFileSync(
@@ -233,7 +259,7 @@ function tree(bs: B[], depth = 0): string[] {
 
 function yamlOfStacks(stacks: B[][], vars: Record<string, string> = {}): string {
   const ws = new Blockly.Workspace();
-  Blockly.serialization.workspaces.load(wsState(...stacks.map((s, i) => ({ ...chainJson(s), x: 0, y: i * 1000 }))), ws);
+  loadState(wsState(...stacks.map((s, i) => ({ ...chainJson(s), x: 0, y: i * 1000 }))), ws);
   const r = generate(ws, vars);
   ws.dispose();
   return r.yaml;

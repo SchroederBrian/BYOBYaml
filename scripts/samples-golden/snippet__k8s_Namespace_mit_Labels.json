@@ -1,0 +1,13 @@
+{
+ "values": [
+  "k8s_namespace.NAME=\"my-app\"",
+  "meta_label.K=\"pod-security.kubernetes.io/enforce\"",
+  "meta_label.V=\"restricted\"",
+  "meta_label.K=\"app.kubernetes.io/part-of\"",
+  "meta_label.V=\"my-app\""
+ ],
+ "yaml": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: my-app\n  labels:\n    pod-security.kubernetes.io/enforce: restricted\n    app.kubernetes.io/part-of: my-app\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

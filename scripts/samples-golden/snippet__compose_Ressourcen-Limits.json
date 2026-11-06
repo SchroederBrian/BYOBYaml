@@ -1,0 +1,12 @@
+{
+ "values": [
+  "svc_resources.KIND=\"limits\"",
+  "svc_resources.CPU=\"1.0\"",
+  "svc_resources.MEM=\"512M\"",
+  "svc_replicas.N=\"2\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

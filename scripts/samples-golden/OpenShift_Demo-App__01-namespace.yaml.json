@@ -1,0 +1,11 @@
+{
+ "values": [
+  "k8s_namespace.NAME=\"${NAMESPACE}\"",
+  "meta_label.K=\"app.kubernetes.io/part-of\"",
+  "meta_label.V=\"demo-app\""
+ ],
+ "yaml": "apiVersion: v1\nkind: Namespace\nmetadata:\n  name: demo-dev\n  labels:\n    app.kubernetes.io/part-of: demo-app\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

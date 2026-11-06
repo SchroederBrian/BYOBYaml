@@ -1,0 +1,12 @@
+{
+ "values": [
+  "x_list.PATH=\"env\"",
+  "x_list.VAL=\"{name: POD_NAME, valueFrom: {fieldRef: {fieldPath: metadata.name}}}\"",
+  "x_list.PATH=\"env\"",
+  "x_list.VAL=\"{name: POD_NAMESPACE, valueFrom: {fieldRef: {fieldPath: metadata.namespace}}}\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

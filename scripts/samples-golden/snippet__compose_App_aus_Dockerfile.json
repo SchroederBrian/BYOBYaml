@@ -1,0 +1,22 @@
+{
+ "values": [
+  "compose_service.NAME=\"app\"",
+  "compose_service.IMAGE=\"\"",
+  "svc_build.CTX=\".\"",
+  "svc_build.FILE=\"Dockerfile\"",
+  "svc_port.HOST=\"8080\"",
+  "svc_port.CONT=\"3000\"",
+  "svc_port.PROTO=\"tcp\"",
+  "svc_env_file.FILE=\".env\"",
+  "svc_env_file.REQ=\"TRUE\"",
+  "svc_depends.NAME=\"db\"",
+  "svc_depends.COND=\"service_healthy\"",
+  "svc_depends.RESTART=\"FALSE\"",
+  "svc_depends.REQUIRED=\"TRUE\"",
+  "svc_restart.R=\"unless-stopped\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

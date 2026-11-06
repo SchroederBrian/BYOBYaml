@@ -1,0 +1,29 @@
+{
+ "values": [
+  "compose_service.NAME=\"mariadb\"",
+  "compose_service.IMAGE=\"mariadb:11\"",
+  "svc_env.K=\"MARIADB_ROOT_PASSWORD\"",
+  "svc_env.V=\"change-me\"",
+  "svc_env.K=\"MARIADB_DATABASE\"",
+  "svc_env.V=\"app\"",
+  "svc_volume.SRC=\"mariadb\"",
+  "svc_volume.DST=\"/var/lib/mysql\"",
+  "svc_volume.RO=\"FALSE\"",
+  "svc_healthcheck.MODE=\"CMD-SHELL\"",
+  "svc_healthcheck.CMD=\"healthcheck.sh --connect --innodb_initialized\"",
+  "svc_healthcheck.INT=\"10s\"",
+  "svc_healthcheck.TO=\"5s\"",
+  "svc_healthcheck.RET=\"5\"",
+  "svc_healthcheck.START=\"\"",
+  "svc_healthcheck.SINT=\"\"",
+  "svc_restart.R=\"unless-stopped\"",
+  "compose_volume.NAME=\"mariadb\"",
+  "compose_volume.DRIVER=\"__none__\"",
+  "compose_volume.EXTERNAL=\"FALSE\"",
+  "compose_volume.XNAME=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

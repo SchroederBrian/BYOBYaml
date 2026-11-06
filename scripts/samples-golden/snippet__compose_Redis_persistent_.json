@@ -1,0 +1,26 @@
+{
+ "values": [
+  "compose_service.NAME=\"redis\"",
+  "compose_service.IMAGE=\"redis:7-alpine\"",
+  "svc_command.CMD=\"redis-server --appendonly yes\"",
+  "svc_volume.SRC=\"redis\"",
+  "svc_volume.DST=\"/data\"",
+  "svc_volume.RO=\"FALSE\"",
+  "svc_healthcheck.MODE=\"CMD-SHELL\"",
+  "svc_healthcheck.CMD=\"redis-cli ping\"",
+  "svc_healthcheck.INT=\"10s\"",
+  "svc_healthcheck.TO=\"3s\"",
+  "svc_healthcheck.RET=\"5\"",
+  "svc_healthcheck.START=\"\"",
+  "svc_healthcheck.SINT=\"\"",
+  "svc_restart.R=\"unless-stopped\"",
+  "compose_volume.NAME=\"redis\"",
+  "compose_volume.DRIVER=\"__none__\"",
+  "compose_volume.EXTERNAL=\"FALSE\"",
+  "compose_volume.XNAME=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

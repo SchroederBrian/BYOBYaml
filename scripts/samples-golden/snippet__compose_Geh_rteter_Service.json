@@ -1,0 +1,16 @@
+{
+ "values": [
+  "svc_flag.K=\"read_only\"",
+  "svc_flag.K=\"init\"",
+  "svc_option.K=\"user\"",
+  "svc_option.V=\"1000:1000\"",
+  "x_field.PATH=\"security_opt\"",
+  "x_field.VAL=\"[\\\"no-new-privileges:true\\\"]\"",
+  "x_field.PATH=\"cap_drop\"",
+  "x_field.VAL=\"[ALL]\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

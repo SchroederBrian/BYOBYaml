@@ -6,6 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { registerBlocks } from '../src/blocks/register';
 import { generate } from '../src/blocks/generator';
+import { loadState } from '../src/blocks/value';
 import { importYaml, parseYamlDocs } from '../src/importer';
 
 registerBlocks();
@@ -40,7 +41,7 @@ for (const name of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f))) {
   const text = readFileSync(join(dir, name), 'utf8');
   const { file, notes } = importYaml(text, name);
   const ws = new Blockly.Workspace();
-  Blockly.serialization.workspaces.load(file.state, ws);
+  loadState(file.state, ws);
   const res = generate(ws);
   ws.dispose();
   const src = parseYamlDocs(text)

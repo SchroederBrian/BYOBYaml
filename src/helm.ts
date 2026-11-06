@@ -2,12 +2,13 @@ import * as Blockly from 'blockly/core';
 import YAML from 'yaml';
 import { generate } from './blocks/generator';
 import { registerBlocks } from './blocks/register';
+import { argValue, hasValueBlock, loadState, setArgValue, type ValueSession } from './blocks/value';
 import { getRuntimeSpec } from './custom-blocks/runtime';
 import { buildDependencyGraph, type DependencyGraph, type DependencyEdge } from './dependencies';
 import { resolveVariables, type Project, type ProjectFile, type Variable } from './project';
 import { yamlForFile } from './projectYaml';
 
-export interface HelmOptions { name: string; version: string; description: string; fileIds: string[] }
+export interface HelmOptions { name: string; version: string; description: string; fileIds: string[]; /** seed and clock for value blocks; one per export */ session?: ValueSession }
 export interface HelmChartFile { path: string; content: string }
 export interface HelmBinding {
   id: string; name: string; path: string[]; variable?: Variable; fileId?: string;
@@ -77,7 +78,7 @@ export function buildHelmChart(project: Project, options: HelmOptions): HelmChar
     const fileTokens: string[] = [], numericTokens = new Set<string>();
     try {
       try {
-        const raw = YAML.parseAllDocuments(yamlForFile(file, resolveVariables(project, file))).map((doc) => doc.toJS({ maxAliasCount: 100 }));
+        const raw = YAML.parseAllDocuments(yamlForFile(file, resolveVariables(project, file), options.session)).map((doc) => doc.toJS({ maxAliasCount: 100 }));
         const flat: any[] = [], fileParameters = new Map<string, { value?: string }>();
         const flatten = (doc: any, depth = 0) => {
           if (depth > 12 || !doc) return;
@@ -90,7 +91,7 @@ export function buildHelmChart(project: Project, options: HelmOptions): HelmChar
         raw.forEach((doc) => flatten(doc)); concrete.set(file.id, flat); parameters.set(file.id, fileParameters);
       } catch { /* Unknown parameters can still be prepared using marker fields. */ }
       Blockly.Events.disable();
-      Blockly.serialization.workspaces.load(file.state, workspace);
+      loadState(file.state, workspace);
       for (const block of workspace.getAllBlocks(false)) {
         if (getRuntimeSpec(block.getRootBlock())?.shape !== 'hat') continue;
         let enabled = true;
@@ -98,7 +99,8 @@ export function buildHelmChart(project: Project, options: HelmOptions): HelmChar
         if (!enabled) continue;
         for (const arg of getRuntimeSpec(block)?.args ?? []) {
           if (arg.kind !== 'text' && arg.kind !== 'multi' && arg.kind !== 'num') continue;
-          const original = String(block.getFieldValue(arg.name) ?? '');
+          if (hasValueBlock(block, arg.name)) continue; // computed at export; nothing to turn into a chart value
+          const original = String(argValue(block, arg.name) ?? '');
           const numeric = arg.kind === 'num' && /^\$\{[A-Za-z_][\w.-]*\}$/.test(original.trim());
           const next = original.replace(VAR, (_match, typedName: string, plainName: string) => {
             const token = `BYOBHELMVAR${tokens.size}TOKEN`;
@@ -107,10 +109,10 @@ export function buildHelmChart(project: Project, options: HelmOptions): HelmChar
             fileTokens.push(token); if (numeric) numericTokens.add(token);
             return token;
           });
-          if (next !== original) block.setFieldValue(next, arg.name);
+          if (next !== original) setArgValue(block, arg.name, next);
         }
       }
-      const generated = generate(workspace, {}, { passThroughUnknownVars: true, templateMode: true });
+      const generated = generate(workspace, {}, { passThroughUnknownVars: true, templateMode: true, session: options.session && { ...options.session, fileName: file.name } });
       if (generated.blocked) chart.errors.push(`${fileLabel(file)}: Eigene Blöcke konnten nicht für Helm vorbereitet werden.`);
       if (!generated.yaml.trim()) chart.errors.push(`${fileLabel(file)}: Keine exportierbaren Ressourcen vorhanden.`);
       const warnings = generated.warnings.filter((warning) => !warning.msg.includes('BYOBHELMVAR'));
@@ -254,7 +256,7 @@ export function buildHelmChart(project: Project, options: HelmOptions): HelmChar
   if (skipped) chart.warnings.push(`${skipped} Compose-Datei(en) werden nicht in Kubernetes-Ressourcen konvertiert.`);
   chart.files.push({ path: '.helmignore', content: '.DS_Store\n.git/\n*.tgz\n' }, { path: 'README.md', content: `# ${options.name}\n\nAus BYOBYaml exportiert. Standard-Umgebung: ${JSON.stringify(defaultEnv)}.\n\n\`\`\`sh\nhelm lint ./\nhelm template mein-release ./\nhelm upgrade --install mein-release ./\n\`\`\`\n\n## Umgebungen\n\n${envPaths.map(({ env, path }) => `- ${JSON.stringify(env)}: \`helm template mein-release ./ -f ${path}\``).join('\n')}\n\n## Variablen\n\nGlobale Werte liegen unter \`global\`, lokale Werte unter \`files\`. Gleichnamige lokale Variablen überschreiben globale Werte nur in ihrer Quelldatei. Werte als Strings angeben; die Templates erzeugen Zahlen und boolesche Werte typgerecht.\n\n${chart.bindings.map((binding) => `- \`${binding.path.join('.')}\`${binding.required ? ': vor dem Rendern erforderlich' : ''}`).join('\n')}\n\n## Secrets und Grenzen\n\nDer verschlüsselte Tresor und seine entschlüsselten Werte sind nicht enthalten. Nicht definierte Referenzen müssen unter \`external\` angegeben werden. Beispiel: \`helm template mein-release ./ -f meine-geheimen-werte.yaml\`. Normale Variablenwerte und direkt in Blöcke geschriebene Werte sind Klartext. Kubernetes-Secret-Daten sind durch Base64 nicht verschlüsselt.\n\nRessourcennamen, Selektoren und explizite Namespaces bleiben erhalten. \`--namespace\` ersetzt keine expliziten Namespaces. Vor Installation vorhandene Ressourcen und die vom Cluster unterstützten APIs prüfen. CRDs unter \`crds/\` sind statisch; Helm aktualisiert/löscht sie nicht automatisch. Compose-Dateien sind nicht enthalten.\n` });
 
-  chart.graph = buildDependencyGraph(selected, (file) => yamlForFile(file, resolveVariables(project, file)));
+  chart.graph = buildDependencyGraph(selected, (file) => yamlForFile(file, resolveVariables(project, file), options.session));
   for (const node of chart.graph.nodes) if (node.category === 'file' && node.fileId) node.name = (templatePaths.get(node.fileId) ?? [node.name]).join(' + ');
   chart.graph.nodes.unshift({ id: 'helm:chart', name: options.name || 'Chart', kind: 'Helm-Chart', category: 'chart' }, { id: 'helm:values', name: 'values.yaml', kind: 'Values-Datei', category: 'value' });
   const edge = (source: string, target: string, label: string, type: DependencyEdge['type'] = 'reference') => chart.graph.edges.push({ id: JSON.stringify(['helm', source, target, label]), source, target, label, type });

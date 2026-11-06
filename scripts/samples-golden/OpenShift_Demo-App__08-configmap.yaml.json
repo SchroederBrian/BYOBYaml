@@ -1,0 +1,17 @@
+{
+ "values": [
+  "k8s_configmap.NAME=\"demo-app-config\"",
+  "data_entry.K=\"APP_ENV\"",
+  "data_entry.V=\"production\"",
+  "data_entry.K=\"LOG_LEVEL\"",
+  "data_entry.V=\"info\"",
+  "data_entry.K=\"DATABASE_HOST\"",
+  "data_entry.V=\"postgres\"",
+  "data_entry.K=\"DATABASE_PORT\"",
+  "data_entry.V=\"5432\""
+ ],
+ "yaml": "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo-app-config\ndata:\n  APP_ENV: production\n  LOG_LEVEL: info\n  DATABASE_HOST: postgres\n  DATABASE_PORT: \"5432\"\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

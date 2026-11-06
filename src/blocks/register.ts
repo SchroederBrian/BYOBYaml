@@ -8,11 +8,15 @@ import { searchBlocks, SEARCH_PAGE_SIZE } from './search';
 import type { FileKind, Snippet } from '../project';
 import { customBlockCatalogue, registerCustomBlockType } from '../custom-blocks/runtime';
 import { CUSTOM_BLOCK } from '../custom-blocks/model';
+import { imageFields, imageTarget, isNativeImageField, openImagePicker, registerImageField } from '../registry/editor';
+import { argValue, isSlot, normalizeState, registerSlotExtension, shadowBlockJson, VALUE_CHECK, type EvalEnv } from './value';
+import { VALUE_GROUPS, VALUE_SPECS, type ValueSpec } from './values';
 
-function argJson(a: ArgDef): any {
+function argJson(a: ArgDef, type: string): any {
+  if (isSlot(type, a)) return { type: 'input_value', name: a.name, check: VALUE_CHECK };
   switch (a.kind) {
     case 'text':
-      return { type: 'field_input', name: a.name, text: a.value, spellcheck: false };
+      return { type: isNativeImageField(type,a.name)||type===CUSTOM_BLOCK ? 'field_registry_image' : 'field_input', name: a.name, text: a.value, spellcheck: false };
     case 'multi':
       return { type: 'field_multilinetext', name: a.name, text: a.value, spellcheck: false };
     case 'num':
@@ -25,13 +29,29 @@ function argJson(a: ArgDef): any {
   }
 }
 
+/** A value block: round, plugs into a slot, computes at export. */
+function valueJson(spec: ValueSpec): any {
+  return {
+    type: spec.type,
+    message0: spec.msg,
+    args0: (spec.args ?? []).map((arg) => argJson(arg, spec.type)),
+    output: VALUE_CHECK,
+    style: 'values_blocks',
+    tooltip: spec.tip,
+    inputsInline: true,
+    ...((spec.args ?? []).some((arg) => isSlot(spec.type, arg)) ? { extensions: ['byob_slots'] } : {}),
+  };
+}
+
 function blockJson(spec: BlockSpec): any {
   const json: any = {
     type: spec.type,
     message0: spec.msg,
-    args0: (spec.args ?? []).map(argJson),
+    args0: (spec.args ?? []).map((arg)=>argJson(arg,spec.type)),
     style: spec.shape === 'hat' ? `${spec.cat}_hat` : `${spec.cat}_blocks`,
     tooltip: spec.tip ?? (spec.where ? `Gehört ${spec.where}.` : ''),
+    inputsInline: true,
+    ...(spec.type !== CUSTOM_BLOCK && (spec.args ?? []).some((arg) => isSlot(spec.type, arg)) ? { extensions: ['byob_slots'] } : {}),
   };
   if (spec.shape === 'hat') {
     json.nextStatement = null;
@@ -59,9 +79,12 @@ export function registerBlocks() {
   if (registered) return;
   registered = true;
   registerFieldMultilineInput();
-  Blockly.common.defineBlocksWithJsonArray(ALL_BLOCKS.map(blockJson));
+  registerImageField();
+  registerSlotExtension();
+  Blockly.common.defineBlocksWithJsonArray([...shadowBlockJson(), ...VALUE_SPECS.map(valueJson), ...ALL_BLOCKS.map(blockJson)]);
   registerCustomBlockType(blockJson);
   if (typeof document !== 'undefined') {
+    Blockly.ContextMenuRegistry.registry.register({id:'byob_browse_image',scopeType:Blockly.ContextMenuRegistry.ScopeType.BLOCK,weight:-12,displayText:'Image & Tag auswählen…',preconditionFn:(scope)=>scope.block&&!scope.block.isInFlyout&&openImagePicker&&imageFields(scope.block).length?'enabled':'hidden',callback:(scope)=>{if(scope.block){const field=imageFields(scope.block)[0];if(field)openImagePicker?.(imageTarget(scope.block,field));}}});
     Blockly.ContextMenuRegistry.registry.register({
       id: 'byob_edit_custom', scopeType: Blockly.ContextMenuRegistry.ScopeType.BLOCK, weight: -11,
       displayText: 'Blocktyp im Designer öffnen…',
@@ -100,7 +123,7 @@ export function registerBlocks() {
 const VAR_RE = /\$\{([A-Za-z_][\w.-]*)\}/g;
 
 /** Read a block's field values into a plain object (typed), substituting ${VARS}. */
-export function readValues(block: Blockly.Block, spec: BlockSpec, vars: Record<string, string> = {}, problems: string[] = [], passThroughUnknown = false): Record<string, any> {
+export function readValues(block: Blockly.Block, spec: BlockSpec, vars: Record<string, string> = {}, problems: string[] = [], passThroughUnknown = false, env?: EvalEnv): Record<string, any> {
   const subst = (s: string) =>
     s.replace(VAR_RE, (m, name) => {
       if (name in vars) return vars[name];
@@ -110,7 +133,7 @@ export function readValues(block: Blockly.Block, spec: BlockSpec, vars: Record<s
     });
   const v: Record<string, any> = {};
   for (const a of spec.args ?? []) {
-    const raw = block.getFieldValue(a.name);
+    const raw = a.kind === 'text' || a.kind === 'num' ? argValue(block, a.name, env) : block.getFieldValue(a.name);
     if (a.kind === 'chk') v[a.name] = raw === 'TRUE' || raw === true;
     else if (a.kind === 'dd') v[a.name] = raw === '__none__' ? '' : raw;
     else if (a.kind === 'num') {
@@ -179,6 +202,7 @@ const CAT_INFO: Record<CatId, string> = {
   build: 'OpenShift ImageStream & BuildConfig',
   scaling: 'HorizontalPodAutoscaler',
   extras: 'Beliebige Felder setzen – für alles ohne eigenen Block',
+  values: 'Runde Blöcke für Eingabefelder: Zufall, Zeit, Text, Variablen. Werden beim Export berechnet.',
 };
 
 export function buildToolbox(mode: FileKind, query = '', snippets: Snippet[] = [], limit = SEARCH_PAGE_SIZE) {
@@ -186,7 +210,7 @@ export function buildToolbox(mode: FileKind, query = '', snippets: Snippet[] = [
     kind: 'categoryToolbox',
     contents: [{ kind: 'category', name: 'Suchergebnisse', categorystyle: 'extras', contents: searchBlocks(query, snippets, limit).contents }],
   };
-  const cats: CatId[] = mode === 'dockerfile' ? ['dockerImage','dockerBuild','dockerRuntime'] : mode === 'compose' ? ['compose', 'service', 'extras'] : ['resources', 'metadata', 'pod', 'container', 'network', 'data', 'build', 'scaling', 'extras'];
+  const cats: CatId[] = mode === 'dockerfile' ? ['dockerImage','dockerBuild','dockerRuntime', 'values'] : mode === 'compose' ? ['compose', 'service', 'extras', 'values'] : ['resources', 'metadata', 'pod', 'container', 'network', 'data', 'build', 'scaling', 'extras', 'values'];
   const snippetGroups = [...new Set(BUILTIN_SNIPPETS.filter((s) => s.kind === mode).map((s) => s.group))];
   return {
     kind: 'categoryToolbox',
@@ -195,7 +219,9 @@ export function buildToolbox(mode: FileKind, query = '', snippets: Snippet[] = [
         kind: 'category',
         name: c.name,
         categorystyle: c.id,
-        contents: [{ kind: 'label', text: CAT_INFO[c.id] }, ...ALL_BLOCKS.filter((b) => b.cat === c.id).map((b) => ({ kind: 'block', type: b.type }))],
+        contents: [{ kind: 'label', text: CAT_INFO[c.id] }, ...(c.id === 'values'
+          ? VALUE_GROUPS.flatMap((g) => [{ kind: 'label', text: g.title.toUpperCase(), 'web-class': 'byob-group-label' }, ...g.types.map((type) => ({ kind: 'block', type }))])
+          : ALL_BLOCKS.filter((b) => b.cat === c.id).map((b) => ({ kind: 'block', type: b.type })))],
       })),
       ...(customBlockCatalogue().some((block) => block.kind === mode) ? [{ kind: 'category', name: 'Eigene Blöcke', categorystyle: 'mine', contents: customBlockCatalogue().filter((block) => block.kind === mode).flatMap((definition) => [{ kind: 'label', text: definition.name }, { kind: 'block', type: CUSTOM_BLOCK, extraState: { definition } }]) }] : []),
       { kind: 'sep', gap: 14 },
@@ -207,7 +233,7 @@ export function buildToolbox(mode: FileKind, query = '', snippets: Snippet[] = [
           { kind: 'label', text: g.toUpperCase(), 'web-class': 'byob-group-label' },
           ...BUILTIN_SNIPPETS.filter((s) => s.kind === mode && s.group === g).flatMap((s) => [
             { kind: 'label', text: `${s.name} — ${s.hint}` },
-            { kind: 'block', ...snippetState(s) },
+            { kind: 'block', ...normalizeState(snippetState(s)) },
           ]),
         ]),
       },
@@ -220,7 +246,7 @@ export function registerDynamicCategories(ws: Blockly.WorkspaceSvg) {
   ws.registerToolboxCategoryCallback('MY_SNIPPETS', () => {
     const list = editorHooks.userSnippets();
     if (!list.length) return [{ kind: 'label', text: 'Noch leer. Rechtsklick auf einen Block → „Ab hier als Vorlage speichern…“' }];
-    return list.flatMap((s: any) => [{ kind: 'label', text: s.name }, { kind: 'block', ...s.block }]);
+    return list.flatMap((s: any) => [{ kind: 'label', text: s.name }, { kind: 'block', ...normalizeState(s.block) }]);
   });
 }
 

@@ -8,6 +8,8 @@ import { Icon } from './components/Icons';
 import { ProblemsPanel, SnippetsPanel, VariablesPanel } from './components/Panels';
 import { HelpDialog, PasteDialog, ProjectsDialog, PromptDialog, ReportDialog, ReportEntry } from './components/Dialogs';
 import type { GenResult } from './blocks/generator';
+import { newSession } from './blocks/value';
+import { freshSeed } from './blocks/rng';
 import { yamlForFile } from './projectYaml';
 import DependencyGraph from './components/DependencyGraph';
 import HelmExport from './components/HelmExport';
@@ -21,6 +23,8 @@ import { importYaml } from './importer';
 import { emptyFile, FileKind, fileKindLabel, outputExtensions, newProject, normalizeProject, parseByob, Project, ProjectFile, ProjectMeta, Snippet, toByob, uid, uniqueName } from './project';
 import { importDockerfile, isDockerfileName } from './dockerfile';
 import DockerfileView from './components/DockerfileView';
+import ImageBrowser from './components/ImageBrowser';
+import type { ImageTarget } from './registry/types';
 import MarketDialog, { UseAction } from './market/MarketDialog';
 import PublishDialog, { PublishSources } from './market/PublishDialog';
 import { fileVars, isFile, isProject, isSnippet, snippetWhere } from './market/preview';
@@ -78,6 +82,7 @@ export default function App() {
   // canvas: drag on empty space selects (select) or moves the view (pan)
   const [canvasMode, setCanvasMode] = useState<CanvasMode>(() => (localStorage.getItem('byob.canvasMode') === 'pan' || window.matchMedia('(max-width: 820px)').matches ? 'pan' : 'select'));
   const [graphOpen, setGraphOpen] = useState(false);
+  const [previewSeed, setPreviewSeed] = useState(freshSeed);
   const [selCount, setSelCount] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   // phones: one pane at a time (files / blocks / inspector), switched via the bottom bar
@@ -89,6 +94,9 @@ export default function App() {
   });
   const [publish, setPublish] = useState<{ sources: PublishSources; edit?: MarketItemFull } | null>(null);
   const [marketReload, setMarketReload] = useState(0);
+  const [imageBrowser, setImageBrowser] = useState<{targets:ImageTarget[];initialReference?:string}|null>(null);
+  const closeImageBrowser=useCallback(()=>setImageBrowser(null),[]);
+  const browseImageField=useCallback((target:ImageTarget)=>setImageBrowser({targets:[target],initialReference:target.reference}),[]);
 
   const editor = useRef<BlockEditorHandle>(null);
   const projectRef = useRef(project);
@@ -99,6 +107,13 @@ export default function App() {
   currentFolderRef.current = currentFolder;
 
   const active = project?.files.find((f) => f.id === activeId) ?? project?.files[0];
+  const openImages=()=>{
+    if(!active||!project)return;
+    setGraphOpen(false);setMobileView('canvas');
+    const fileId=active.id,projectId=project.id;
+    const create:ImageTarget={id:'new-image-block',label:active.kind==='dockerfile'?'Neuen FROM-Block anlegen':active.kind==='compose'?'Neuen Service anlegen':'Neuen Container anlegen',reference:'',apply(reference){if(projectRef.current?.id!==projectId||activeRef.current!==fileId)throw new Error('Die aktive Datei wurde gewechselt. Bitte den Image-Browser erneut öffnen.');editor.current?.addImage(reference);}};
+    setImageBrowser({targets:[...(editor.current?.imageTargets()??[]),create]});
+  };
   const variableCount = (project?.variables.length ?? 0) + (active?.variables?.length ?? 0);
 
   const flash = useCallback((msg: string) => {
@@ -128,6 +143,9 @@ export default function App() {
   const vault = useSecretVault(project, persistVault);
   const vars = useMemo(() => project ? secretVariables(project, active, vault.entries, true) : {}, [project?.variables, project?.activeEnv, active?.variables, active?.id, vault.entries]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // live preview: one stable seed and clock until "Würfeln"; every export draws a new session instead
+  const previewSession = useMemo(() => ({ ...newSession({ envName: project?.activeEnv ?? '', projectName: project?.title ?? '', fileName: active?.name ?? '' }), seed: previewSeed, counters: undefined, memo: undefined }), [previewSeed, project?.activeEnv, project?.title, active?.name]); // eslint-disable-line react-hooks/exhaustive-deps
+  const exportSession = (p: Project) => newSession({ envName: p.activeEnv, projectName: p.title });
   const exportVariables = (p: Project, file: ProjectFile) => {
     if (p.secretVault && !vault.unlocked) throw new Error('Bitte den Secret-Tresor im Bereich „Variablen“ entsperren, bevor du YAML kopierst oder exportierst.');
     return secretVariables(p, file, vault.entries, false);
@@ -135,7 +153,7 @@ export default function App() {
   const activeYaml = () => {
     const p = projectRef.current;
     if (!p || !active) return '';
-    return yamlForFile({ ...active, state: editor.current?.save() ?? active.state }, exportVariables(p, active));
+    return yamlForFile({ ...active, state: editor.current?.save() ?? active.state }, exportVariables(p, active), exportSession(p));
   };
 
   const refreshProjects = useCallback(async () => setProjects(await db.listProjects()), []);
@@ -346,7 +364,8 @@ export default function App() {
     const p = projectRef.current;
     if (!p) return;
     try {
-      const files = p.files.map((f) => ({ name: joinPath(f.folder ?? '', f.name), content: yamlForFile(f, exportVariables(p, f)) }));
+      const session = exportSession(p);
+      const files = p.files.map((f) => ({ name: joinPath(f.folder ?? '', f.name), content: yamlForFile(f, exportVariables(p, f), session) }));
       const r = await exportAll(files);
       if (r) flash(`${files.length} Dateien (${p.activeEnv}) → ${r}`);
     } catch (e) { flash(e instanceof Error ? e.message : 'YAML konnte nicht exportiert werden.'); }
@@ -355,7 +374,8 @@ export default function App() {
     const p = projectRef.current;
     if (!p || !list.length) return;
     try {
-      const files = list.map((f) => ({ name: joinPath(f.folder ?? '', f.name), content: yamlForFile(f, exportVariables(p, f)) }));
+      const session = exportSession(p);
+      const files = list.map((f) => ({ name: joinPath(f.folder ?? '', f.name), content: yamlForFile(f, exportVariables(p, f), session) }));
       const r = files.length === 1 ? await saveText(list[0].name, files[0].content, outputExtensions(list[0].kind)) : await exportAll(files);
       if (r) flash(`${files.length} ${files.length === 1 ? 'Datei' : 'Dateien'} (${p.activeEnv}) → ${r}`);
     } catch (e) { flash(e instanceof Error ? e.message : 'YAML konnte nicht exportiert werden.'); }
@@ -514,7 +534,7 @@ export default function App() {
     // download as a file
     const base = slug(item.title);
     let r: string | null;
-    if (isFile(d)) r = await saveText(d.name || (d.kind === 'dockerfile' ? 'Dockerfile' : `${base}.yaml`), yamlForFile({ id: 'x', ...d }, fileVars(d)), outputExtensions(d.kind));
+    if (isFile(d)) r = await saveText(d.name || (d.kind === 'dockerfile' ? 'Dockerfile' : `${base}.yaml`), yamlForFile({ id: 'x', ...d }, fileVars(d), newSession()), outputExtensions(d.kind));
     else if (isProject(d)) {
       const np = normalizeProject({ format: 'byobyaml', version: 2, id: uid(), title: d.title || item.title, files: d.files.map((f) => ({ id: uid(), ...f })), variables: d.variables, envs: d.envs, activeEnv: d.envs[0] ?? 'dev' });
       r = await saveText(`${base}.byob`, toByob([np]), ['byob']);
@@ -683,6 +703,7 @@ export default function App() {
               <Icon name="store" size={14} /> Marktplatz
             </button>
           )}
+          <button className="menu-btn market-btn" onMouseDown={(event)=>event.preventDefault()} onClick={openImages} disabled={!active} title="Container-Images und Tags auf Docker Hub und GHCR auswählen"><Icon name="box" size={14}/>Images</button>
         </nav>
 
         <div className="title-center">
@@ -777,7 +798,7 @@ export default function App() {
             </div>
           </div>
           <div className="canvas-body" style={{ display: graphOpen ? 'none' : undefined }}>
-            <BlockEditor ref={editor} fileKey={`${project?.id ?? ''}:${active?.id ?? ''}`} vars={vars} userSnippets={snippets} onChange={onChange} onSaveSnippet={onSaveSnippet} onShareSnippet={guest ? undefined : onShareSnippet} mode={canvasMode} onSelectionChange={setSelCount} customLibraryVersion={`${customLibrary.library.revision}:${customLibrary.ready}:${customLibrary.error}`} onDesignCustomBlocks={canManageCustomBlocks && active?.kind !== 'dockerfile' ? (initial) => setDialog({ kind: 'block-designer', initial }) : undefined} />
+            <BlockEditor ref={editor} fileKey={`${project?.id ?? ''}:${active?.id ?? ''}`} vars={vars} session={previewSession} userSnippets={snippets} onChange={onChange} onSaveSnippet={onSaveSnippet} onShareSnippet={guest ? undefined : onShareSnippet} mode={canvasMode} onSelectionChange={setSelCount} customLibraryVersion={`${customLibrary.library.revision}:${customLibrary.ready}:${customLibrary.error}`} onDesignCustomBlocks={canManageCustomBlocks && active?.kind !== 'dockerfile' ? (initial) => setDialog({ kind: 'block-designer', initial }) : undefined} onBrowseImage={browseImageField} />
           </div>
           {graphOpen && project && <div className="canvas-body"><DependencyGraph key={project.id} project={project} activeFileId={active?.id ?? ''} onOpen={(id) => { setActiveId(id); setGraphOpen(false); setMobileView('canvas'); }} /></div>}
         </main>
@@ -818,6 +839,9 @@ export default function App() {
                   }}
                 >
                   <Icon name="copy" size={14} /> Kopieren
+                </button>
+                <button className="btn ghost sm" title="Zufallswerte der Vorschau neu würfeln. Jeder Export würfelt ohnehin neu." onClick={() => setPreviewSeed(freshSeed())}>
+                  <Icon name="refresh" size={14} /> Würfeln
                 </button>
                 <button className="btn ghost sm" disabled={!result.yaml || result.blocked} onClick={saveYaml}>
                   <Icon name="download" size={14} /> Speichern
@@ -901,6 +925,7 @@ export default function App() {
           reloadKey={marketReload}
         />
       )}
+      {imageBrowser&&<ImageBrowser targets={imageBrowser.targets} initialReference={imageBrowser.initialReference} onClose={closeImageBrowser} flash={flash}/>}
       {publish && !guest && (
         <PublishDialog
           sources={publish.sources}

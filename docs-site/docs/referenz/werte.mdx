@@ -1,0 +1,74 @@
+---
+title: "Werte"
+sidebar_label: "Werte"
+sidebar_position: 15
+description: "Alle Wertblöcke: Zufall, Zeit, Text, Rechnen, Logik und Kontext."
+---
+
+{/* Automatisch erzeugt von scripts/gen-docs.ts – nicht von Hand bearbeiten. */}
+
+# <span className="cat-dot" style={{ background: '#7d9a2b' }} /> Werte
+
+32 runde Blöcke, die in jedes Text- oder Zahlenfeld passen und beim Export berechnet werden. Wie das funktioniert, steht unter [Wertblöcke](../funktionen/wertbloecke.md).
+
+## Zufall
+
+| Block | Felder (Standard) | Wirkung |
+| --- | --- | --- |
+| Zufallszahl von … bis … | `MIN` `1`, `MAX` `100` | Eine neue ganze Zufallszahl bei jedem Export (beide Grenzen eingeschlossen). |
+| Zufallstext Länge … aus … | `LEN` `8`, `SET` `Kleinbuchstaben + Ziffern` | Ein neuer Zufallstext bei jedem Export. |
+| Hex-Token aus … Bytes | `BYTES` `16` | Ein neuer Zufalls-Token aus Hexadezimalzeichen (2 Zeichen je Byte). |
+| Passwort Länge … mit Sonderzeichen … | `LEN` `20`, `SYM` aus | Ein neues Passwort mit Klein-, Großbuchstaben und Ziffern (optional Sonderzeichen). Es wird bei jedem Export neu erzeugt und nirgends gespeichert. |
+| UUID | – | Eine neue UUID (Version 4) bei jedem Export. |
+| Zufällig aus Liste … | `LIST` `rot,gruen,blau` | Wählt bei jedem Export einen Eintrag der kommagetrennten Liste. |
+| Zufallsport von … bis … | `MIN` `20000`, `MAX` `60000` | Ein neuer Zufallsport (1–65535). |
+| Zufallsfarbe | – | Eine neue Farbe als #rrggbb. |
+
+## Zeit
+
+| Block | Felder (Standard) | Wirkung |
+| --- | --- | --- |
+| Zeitstempel … | `FORMAT` `ISO 8601` | Zeitpunkt des Exports (UTC). Alle Dateien eines Exports teilen sich denselben Zeitpunkt. |
+| Datum in … Tagen | `DAYS` `1` | Das Datum (JJJJ-MM-TT, UTC) vom Export-Zeitpunkt aus gerechnet. Negative Zahlen liegen in der Vergangenheit. |
+
+## Text
+
+| Block | Felder (Standard) | Wirkung |
+| --- | --- | --- |
+| Verbinde … und … mit Trenner … | `A` (leer), `B` (leer), `SEP` (leer) | Fügt zwei Werte mit einem Trenner dazwischen zusammen. Ineinander stecken für mehr Teile. |
+| GROSS … | `TEXT` (leer) | Wandelt in Großbuchstaben um. |
+| klein … | `TEXT` (leer) | Wandelt in Kleinbuchstaben um. |
+| Name-tauglich aus … | `TEXT` (leer) | Macht aus Text einen Namen aus Kleinbuchstaben, Ziffern und Bindestrichen (Umlaute werden aufgelöst). |
+| Ersetze … in … durch … | `FIND` `-`, `TEXT` `a-b`, `WITH` `_` | Ersetzt jedes Vorkommen des Suchtexts (kein Muster, nur Text). |
+| Teil von … ab Zeichen … Länge … | `TEXT` (leer), `FROM` `1`, `LEN` `5` | Schneidet ein Stück aus dem Text. Das erste Zeichen ist Nr. 1. |
+| Wiederhole … mal … | `COUNT` `3`, `TEXT` `x` | Wiederholt den Text (höchstens 100000 Zeichen insgesamt). |
+| Länge von … | `TEXT` (leer) | Anzahl der Zeichen. |
+| Base64 von … | `TEXT` (leer) | Base64-Kodierung (UTF-8), z. B. für Kubernetes-Secret-Werte. |
+| SHA-256 von … | `TEXT` (leer) | Prüfsumme als 64 Hexzeichen. |
+| URL-kodiert … | `TEXT` (leer) | Kodiert Sonderzeichen für die Verwendung in URLs (z. B. Passwörter in Verbindungs-URLs). |
+
+## Rechnen
+
+| Block | Felder (Standard) | Wirkung |
+| --- | --- | --- |
+| Rechne … … … | `A` `1`, `OP` `+`, `B` `1` | Grundrechenarten. Division durch 0 ist ein Fehler. |
+| Runde … auf … Stellen | `X` `0`, `DIGITS` `0` | Rundet auf die angegebene Zahl von Nachkommastellen (0–10). |
+| Von … und … der … Wert | `A` `1`, `B` `2`, `WHICH` `kleinere` | Der kleinere oder größere von zwei Werten. |
+| Zähler … ab … | `KEY` `zaehler`, `START` `1` | Blöcke mit demselben Zähler-Namen zählen gemeinsam hoch: ab dem Startwert 1, 2, 3 … in der Reihenfolge der Ausgabe, z. B. für fortlaufende Ports. |
+
+## Logik
+
+| Block | Felder (Standard) | Wirkung |
+| --- | --- | --- |
+| Ist … … … | `A` (leer), `OP` `gleich`, `B` (leer) | Ergibt true oder false. Zahlen werden als Zahlen verglichen, sonst als Text. |
+| Wenn … dann … sonst … | `COND` `true`, `THEN` (leer), `ELSE` (leer) | Wählt zwischen zwei Werten. Als Bedingung gelten true, 1, yes, ja, on, an. |
+
+## Kontext
+
+| Block | Felder (Standard) | Wirkung |
+| --- | --- | --- |
+| Variable … | `NAME` `APP` | Wert einer Projekt- oder Datei-Variable in der aktiven Umgebung. |
+| Umgebung | – | Name der aktiven Umgebung, z. B. dev oder prod. |
+| Projektname | – | Titel des Projekts. |
+| Dateiname | – | Name der Datei, in der dieser Block steht (mit Endung). |
+| Merke … als … | `KEY` `passwort`, `VALUE` (leer) | Der erste Wert unter diesem Namen gilt im ganzen Export, auch in anderen Dateien. So steht dasselbe Zufallspasswort in Secret und Anwendung. |

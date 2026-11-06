@@ -1,0 +1,32 @@
+{
+ "values": [
+  "c_probe.KIND=\"startupProbe\"",
+  "c_probe.HOW=\"http\"",
+  "c_probe.PATH=\"/healthz\"",
+  "c_probe.PORT=\"8080\"",
+  "c_probe.DELAY=\"0\"",
+  "c_probe.PERIOD=\"5\"",
+  "c_probe.TIMEOUT=\"\"",
+  "c_probe.FAIL=\"\"",
+  "c_probe.KIND=\"livenessProbe\"",
+  "c_probe.HOW=\"http\"",
+  "c_probe.PATH=\"/healthz\"",
+  "c_probe.PORT=\"8080\"",
+  "c_probe.DELAY=\"0\"",
+  "c_probe.PERIOD=\"20\"",
+  "c_probe.TIMEOUT=\"\"",
+  "c_probe.FAIL=\"\"",
+  "c_probe.KIND=\"readinessProbe\"",
+  "c_probe.HOW=\"http\"",
+  "c_probe.PATH=\"/ready\"",
+  "c_probe.PORT=\"8080\"",
+  "c_probe.DELAY=\"0\"",
+  "c_probe.PERIOD=\"10\"",
+  "c_probe.TIMEOUT=\"\"",
+  "c_probe.FAIL=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

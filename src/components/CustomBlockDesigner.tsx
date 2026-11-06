@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Blockly from 'blockly/core';
 import { buildTheme, FIXED_FLYOUT, registerBlocks } from '../blocks/register';
 import { CATEGORIES } from '../blocks/types';
+import { denormalizeState, loadState, ownerOfField, setArgValue } from '../blocks/value';
 import { CUSTOM_BLOCK, designerBlocks, makeParameter, normalizeDefinition, walkRecipe, type CustomBlockDefinition, type CustomParameter, type RecipeNode } from '../custom-blocks/model';
 import { newDefinition } from '../custom-blocks/presets';
 import { customValidation } from '../custom-blocks/runtime';
@@ -47,7 +48,7 @@ export default function CustomBlockDesigner({ controller, initial, kind, onClose
   };
   const changeDraft = (patch: Partial<CustomBlockDefinition>) => { setDraft((value) => ({ ...value, ...patch })); setDirty(true); };
   const close = () => { if (!busy && (!dirty || window.confirm('Ungespeicherte Änderungen am Blocktyp verwerfen?'))) onClose(); };
-  const publishWorkspace = () => { if (editor.current && !suppress.current) { setSource(Blockly.serialization.workspaces.save(editor.current)); setDirty(true); } };
+  const publishWorkspace = () => { if (editor.current && !suppress.current) { setSource(denormalizeState(Blockly.serialization.workspaces.save(editor.current))); setDirty(true); } };
 
   useEffect(() => {
     registerBlocks();
@@ -61,13 +62,14 @@ export default function CustomBlockDesigner({ controller, initial, kind, onClose
       if (event.type === 'selected' && detail.newElementId && workspace.getBlockById(detail.newElementId)) setSelectedId(detail.newElementId);
       if (event.isUiEvent) return;
       if (detail.element === 'field' && detail.blockId && detail.name) {
-        const binding = draftRef.current.bindings.find((binding) => binding.blockId === detail.blockId && binding.field === detail.name);
+        const owner = ownerOfField(workspace, detail.blockId, detail.name);
+        const binding = draftRef.current.bindings.find((binding) => binding.blockId === owner.blockId && binding.field === owner.name);
         if (binding) {
           const parameter = draftRef.current.parameters.find((p) => p.id === binding.parameterId)!;
           const value = parameter.kind === 'boolean' ? detail.newValue === true || detail.newValue === 'TRUE' : detail.newValue === '__none__' ? '' : detail.newValue;
           setDraft((current) => ({ ...current, parameters: current.parameters.map((p) => p.id === parameter.id ? { ...p, value } : p) }));
           Blockly.Events.disable();
-          try { for (const other of draftRef.current.bindings.filter((other) => other.parameterId === parameter.id && (other.blockId !== detail.blockId || other.field !== detail.name))) workspace.getBlockById(other.blockId)?.setFieldValue(toField(value), other.field); }
+          try { for (const other of draftRef.current.bindings.filter((other) => other.parameterId === parameter.id && (other.blockId !== owner.blockId || other.field !== owner.name))) { const target = workspace.getBlockById(other.blockId); if (target) setArgValue(target, other.field, String(toField(value))); } }
           finally { Blockly.Events.enable(); }
         }
       }
@@ -81,7 +83,7 @@ export default function CustomBlockDesigner({ controller, initial, kind, onClose
   useEffect(() => {
     if (!editor.current) return;
     suppress.current = true; Blockly.Events.disable();
-    try { editor.current.clear(); editor.current.updateToolbox(toolbox(draft.kind)); Blockly.serialization.workspaces.load(source, editor.current); editor.current.clearUndo(); }
+    try { editor.current.clear(); editor.current.updateToolbox(toolbox(draft.kind)); loadState(source, editor.current); editor.current.clearUndo(); }
     finally { Blockly.Events.enable(); suppress.current = false; }
     requestAnimationFrame(() => { if (editor.current) { Blockly.svgResize(editor.current); const root = editor.current.getTopBlocks(true)[0]; if (root) editor.current.centerOnBlock(root.id); } });
     // Only explicit load/new actions replace the designer canvas.
@@ -104,9 +106,9 @@ export default function CustomBlockDesigner({ controller, initial, kind, onClose
     setDraft((current) => ({ ...current, parameters: current.parameters.map((parameter) => parameter.id === id ? { ...parameter, ...patch } : parameter) })); setDirty(true);
     if ('value' in patch && editor.current) {
       Blockly.Events.disable();
-      try { for (const binding of draft.bindings.filter((binding) => binding.parameterId === id)) editor.current.getBlockById(binding.blockId)?.setFieldValue(toField(patch.value), binding.field); }
+      try { for (const binding of draft.bindings.filter((binding) => binding.parameterId === id)) { const target = editor.current.getBlockById(binding.blockId); if (target) setArgValue(target, binding.field, String(toField(patch.value))); } }
       finally { Blockly.Events.enable(); }
-      setSource(Blockly.serialization.workspaces.save(editor.current));
+      setSource(denormalizeState(Blockly.serialization.workspaces.save(editor.current)));
     }
   };
   const expose = (field: string, enabled: boolean) => {

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import * as Blockly from 'blockly/core';
 import * as De from 'blockly/msg/de';
 import { buildTheme, registerBlocks } from '../blocks/register';
+import { loadState } from '../blocks/value';
 
 export default function BlockPreview({ state, height = 320 }: { state: any; height?: number | string }) {
   const host = useRef<HTMLDivElement>(null);
@@ -19,7 +20,7 @@ export default function BlockPreview({ state, height = 320 }: { state: any; heig
     });
     try {
       Blockly.Events.disable();
-      Blockly.serialization.workspaces.load(state, ws);
+      loadState(state, ws);
       ws.cleanUp();
     } catch (e) {
       console.warn('preview failed', e);

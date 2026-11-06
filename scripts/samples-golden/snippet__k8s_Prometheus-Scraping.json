@@ -1,0 +1,14 @@
+{
+ "values": [
+  "pod_annotation.K=\"prometheus.io/scrape\"",
+  "pod_annotation.V=\"true\"",
+  "pod_annotation.K=\"prometheus.io/port\"",
+  "pod_annotation.V=\"9090\"",
+  "pod_annotation.K=\"prometheus.io/path\"",
+  "pod_annotation.V=\"/metrics\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

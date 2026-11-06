@@ -1,0 +1,16 @@
+{
+ "values": [
+  "pod_vol_pvc.NAME=\"data\"",
+  "pod_vol_pvc.CLAIM=\"app-data\"",
+  "pod_container.NAME=\"app\"",
+  "pod_container.IMAGE=\"nginx:latest\"",
+  "c_mount.NAME=\"data\"",
+  "c_mount.PATH=\"/data\"",
+  "c_mount.RO=\"FALSE\"",
+  "c_mount.SUB=\"\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

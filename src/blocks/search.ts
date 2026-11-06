@@ -1,6 +1,8 @@
 import { ALL_BLOCKS } from './defs';
 import { CATEGORIES } from './types';
 import { BUILTIN_SNIPPETS, snippetState } from '../snippets';
+import { normalizeState } from './value';
+import { VALUE_SPECS } from './values';
 import type { Snippet } from '../project';
 import { customBlockCatalogue } from '../custom-blocks/runtime';
 import { CUSTOM_BLOCK } from '../custom-blocks/model';
@@ -21,11 +23,15 @@ export function searchBlocks(query: string, ownSnippets: Snippet[], limit = SEAR
       if (matches(text)) results.push({ group: category.name, block: { kind: 'block', type: block.type } });
     }
   }
+  for (const block of VALUE_SPECS) {
+    const text = [block.msg.replace(/%\d+/g, ''), block.type, block.tip, block.keywords ?? '', 'Werte Wertblock rund'].join(' ');
+    if (matches(text)) results.push({ group: 'Werte', block: { kind: 'block', type: block.type } });
+  }
   for (const snippet of BUILTIN_SNIPPETS) if (matches(`${snippet.name} ${snippet.hint} ${snippet.group} ${snippet.kind}`)) {
-    results.push({ group: `Vorlagen · ${snippet.kind === 'dockerfile' ? 'Dockerfile' : snippet.kind === 'compose' ? 'Compose' : 'Kubernetes/OpenShift'}`, label: `${snippet.name} — ${snippet.hint}`, block: { kind: 'block', ...snippetState(snippet) } });
+    results.push({ group: `Vorlagen · ${snippet.kind === 'dockerfile' ? 'Dockerfile' : snippet.kind === 'compose' ? 'Compose' : 'Kubernetes/OpenShift'}`, label: `${snippet.name} — ${snippet.hint}`, block: { kind: 'block', ...normalizeState(snippetState(snippet)) } });
   }
   for (const snippet of ownSnippets) if (snippet.block && matches(`${snippet.name} ${snippet.category} eigene Vorlage`)) {
-    results.push({ group: 'Meine Vorlagen', label: snippet.name, block: { kind: 'block', ...snippet.block } });
+    results.push({ group: 'Meine Vorlagen', label: snippet.name, block: { kind: 'block', ...normalizeState(snippet.block) } });
   }
   const visible = results.slice(0, limit);
   const contents: any[] = [{ kind: 'label', text: results.length ? `${results.length} Treffer in allen Kategorien` : 'Keine passenden Blöcke oder Vorlagen.' }];

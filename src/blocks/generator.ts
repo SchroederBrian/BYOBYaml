@@ -3,6 +3,7 @@ import * as Blockly from 'blockly/core';
 import YAML, { isScalar, Scalar } from 'yaml';
 import { SPEC_BY_TYPE } from './defs';
 import { readValues } from './register';
+import { argValue, loadState, makeEnv, newSession, type EvalEnv, type ValueSession } from './value';
 import { Ctx } from './types';
 import { CUSTOM_BLOCK } from '../custom-blocks/model';
 import { cleanOutput, expandCustomState } from '../custom-blocks/recipe';
@@ -51,10 +52,18 @@ export interface GenOptions {
   /** Internal Helm export: placeholder scalars are validated after rendering. */
   templateMode?: boolean;
   validateDocument?: (document: any, rootId: string) => string[];
+  /** Seed, clock and names shared by everything one export produces. Without one, every call draws a fresh seed. */
+  session?: ValueSession;
 }
 
 export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {}, opts: GenOptions = {}): GenResult {
-  if (opts.fileKind === 'dockerfile') return generateDockerfile(ws, vars);
+  if (opts.fileKind === 'dockerfile') {
+    const errors: GenWarning[] = [];
+    const env = makeEnv(vars, opts.session ?? newSession(), (message, block) => errors.push({ blockId: block.id, msg: message }));
+    const result = generateDockerfile(ws, vars, (block, name) => argValue(block, name, env));
+    markValueBlocks(ws, errors);
+    return errors.length ? { ...result, warnings: [...result.warnings, ...errors], blocked: true } : result;
+  }
   const custom = ws.getAllBlocks(false).filter((block) => block.type === CUSTOM_BLOCK);
   if (custom.length) {
     const failed = (message: string): GenResult => {
@@ -69,7 +78,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
     try {
       Blockly.Events.disable();
       const expanded = expandCustomState(Blockly.serialization.workspaces.save(ws), vars, !!opts.templateMode);
-      Blockly.serialization.workspaces.load(expanded.state, expandedWorkspace);
+      loadState(expanded.state, expandedWorkspace);
       const result = generate(expandedWorkspace, vars, { ...opts, validateDocument: opts.templateMode ? undefined : (doc, rootId) => expanded.affectedRoots.has(rootId) ? validator.validateDocument(cleanOutput(doc)).map((issue) => `${issue.path ?? '/'}: ${issue.message}`) : [] });
       const warnings = result.warnings.map((warning) => ({ ...warning, blockId: expanded.owners.get(warning.blockId) ?? expanded.affectedRoots.get(warning.blockId) ?? warning.blockId }));
       for (const block of ws.getAllBlocks(false)) setWarning(block, warnings.filter((warning) => warning.blockId === block.id).map((warning) => warning.msg).join('\n') || null);
@@ -82,6 +91,8 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
   const sources: string[] = [];
   let blocked = false;
   const touched = new Set<string>();
+  const valueErrors: GenWarning[] = [];
+  const env: EvalEnv = makeEnv(vars, opts.session ?? newSession(), (message, block) => { blocked = true; warnings.push({ blockId: block.id, msg: message }); valueErrors.push({ blockId: block.id, msg: message }); }, !!opts.passThroughUnknownVars);
 
   const runChain = (first: Blockly.Block | null, ctx: Ctx) => {
     for (let b = first; b; b = b.getNextBlock()) {
@@ -101,7 +112,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
       blockWarnings.push(`Dieser Block gehört ${spec.where ?? 'woanders hin'}.`);
     } else {
       try {
-        spec.gen(readValues(b, spec, vars, blockWarnings, !!opts.passThroughUnknownVars), ctx, (scopes, patch) => {
+        spec.gen(readValues(b, spec, vars, blockWarnings, !!opts.passThroughUnknownVars, env), ctx, (scopes, patch) => {
           const child: Ctx = { ...ctx, ...patch, scopes: new Set([...ctx.scopes, ...scopes]) };
           const first = spec.shape === 'hat' ? b.getNextBlock() : b.getInputTargetBlock('BODY');
           runChain(first, child);
@@ -116,7 +127,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
 
   const tops = ws.getTopBlocks(true);
   // OpenShift templates reference their parameters as ${NAME} / ${{NAME}}
-  if (tops.some((t) => t.type === 'k8s_template')) opts = { ...opts, passThroughUnknownVars: true };
+  if (tops.some((t) => t.type === 'k8s_template')) { opts = { ...opts, passThroughUnknownVars: true }; env.passThrough = true; }
   for (const top of tops) {
     const spec = SPEC_BY_TYPE[top.type];
     if (spec?.shape === 'hat' && top.isEnabled()) {
@@ -128,6 +139,7 @@ export function generate(ws: Blockly.Workspace, vars: Record<string, string> = {
   for (const b of ws.getAllBlocks(false)) {
     if (!touched.has(b.id)) setWarning(b, null);
   }
+  markValueBlocks(ws, valueErrors);
 
   // a Template start block collects every other document of the file as its objects
   let docs = out.map(prune);
@@ -165,6 +177,14 @@ function octalModes(v: any, key?: string): any {
     for (const k of Object.keys(v)) v[k] = octalModes(v[k], k);
   }
   return v;
+}
+
+/** Value blocks are not run as stack blocks: show their own evaluation problems on them. */
+function markValueBlocks(ws: Blockly.Workspace, errors: GenWarning[]) {
+  for (const b of ws.getAllBlocks(false)) {
+    if (!b.outputConnection || b.isShadow()) continue;
+    setWarning(b, errors.filter((e) => e.blockId === b.id).map((e) => e.msg).join('\n') || null);
+  }
 }
 
 function setWarning(b: Blockly.Block, text: string | null) {

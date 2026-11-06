@@ -1,0 +1,14 @@
+{
+ "values": [
+  "k8s_hpa.NAME=\"demo-app-hpa\"",
+  "k8s_hpa.TARGET=\"demo-app\"",
+  "k8s_hpa.MIN=\"2\"",
+  "k8s_hpa.MAX=\"5\"",
+  "hpa_metric.RES=\"cpu\"",
+  "hpa_metric.PCT=\"70\""
+ ],
+ "yaml": "apiVersion: autoscaling/v2\nkind: HorizontalPodAutoscaler\nmetadata:\n  name: demo-app-hpa\nspec:\n  scaleTargetRef:\n    apiVersion: apps/v1\n    kind: Deployment\n    name: demo-app\n  minReplicas: 2\n  maxReplicas: 5\n  metrics:\n    - type: Resource\n      resource:\n        name: cpu\n        target:\n          type: Utilization\n          averageUtilization: 70\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

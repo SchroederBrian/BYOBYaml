@@ -1,0 +1,15 @@
+{
+ "values": [
+  "k8s_cronjob.NAME=\"backup\"",
+  "k8s_cronjob.SCHEDULE=\"0 2 * * *\"",
+  "x_field.PATH=\"spec.concurrencyPolicy\"",
+  "x_field.VAL=\"Forbid\"",
+  "pod_container.NAME=\"backup\"",
+  "pod_container.IMAGE=\"alpine:3.20\"",
+  "c_command.CMD=\"/bin/sh -c \\\"echo backup\\\"\""
+ ],
+ "yaml": "apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: backup\nspec:\n  schedule: 0 2 * * *\n  jobTemplate:\n    spec:\n      template:\n        metadata:\n          labels:\n            app: backup\n        spec:\n          containers:\n            - name: backup\n              image: alpine:3.20\n              command:\n                - /bin/sh\n                - -c\n                - echo backup\n          restartPolicy: OnFailure\n  concurrencyPolicy: Forbid\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

@@ -1,0 +1,16 @@
+{
+ "values": [
+  "compose_network.NAME=\"frontend\"",
+  "compose_network.DRIVER=\"bridge\"",
+  "compose_network.EXTERNAL=\"FALSE\"",
+  "compose_network.INTERNAL=\"FALSE\"",
+  "compose_network.NAME=\"backend\"",
+  "compose_network.DRIVER=\"bridge\"",
+  "compose_network.EXTERNAL=\"FALSE\"",
+  "compose_network.INTERNAL=\"FALSE\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

@@ -14,7 +14,8 @@ export type CatId =
   | 'data'
   | 'build'
   | 'scaling'
-  | 'extras';
+  | 'extras'
+  | 'values';
 
 export interface Category {
   id: CatId;
@@ -42,6 +43,7 @@ export const CATEGORIES: Category[] = [
   cat('build', 'Build', '#bf4c66'),
   cat('scaling', 'Skalierung', '#24927a'),
   cat('extras', 'Extras', '#5f6b82'),
+  cat('values', 'Werte', '#7d9a2b'),
 ];
 
 /** Lighten (amt > 0) or darken (amt < 0) a hex colour. */

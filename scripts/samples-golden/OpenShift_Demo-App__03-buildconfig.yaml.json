@@ -1,0 +1,17 @@
+{
+ "values": [
+  "k8s_buildconfig.NAME=\"demo-app-build\"",
+  "k8s_buildconfig.OUT=\"demo-app:latest\"",
+  "k8s_buildconfig.RUN=\"Serial\"",
+  "bc_git.URI=\"https://github.com/example/demo-app.git\"",
+  "bc_git.REF=\"main\"",
+  "bc_git.DIR=\"\"",
+  "bc_docker.FILE=\"Dockerfile\"",
+  "bc_trigger.T=\"ConfigChange\"",
+  "bc_trigger.SECRET=\"\""
+ ],
+ "yaml": "apiVersion: build.openshift.io/v1\nkind: BuildConfig\nmetadata:\n  name: demo-app-build\nspec:\n  runPolicy: Serial\n  source:\n    type: Git\n    git:\n      uri: https://github.com/example/demo-app.git\n      ref: main\n  strategy:\n    type: Docker\n    dockerStrategy:\n      dockerfilePath: Dockerfile\n  output:\n    to:\n      kind: ImageStreamTag\n      name: demo-app:latest\n  triggers:\n    - type: ConfigChange\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

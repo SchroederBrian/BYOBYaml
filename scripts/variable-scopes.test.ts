@@ -5,6 +5,7 @@ import { b, file, newProject, normalizeProject, parseByob, stack, toByob } from 
 import * as model from '../src/project';
 import { generate } from '../src/blocks/generator';
 import { registerBlocks } from '../src/blocks/register';
+import { loadState } from '../src/blocks/value';
 import { checkData, findSecrets } from '../src/market/shared';
 import * as marketModel from '../src/market/shared';
 import { projectVars } from '../src/market/preview';
@@ -61,7 +62,7 @@ describe('file and global variables', () => {
     const names = project.files.map((f) => {
       const ws = new Blockly.Workspace();
       try {
-        Blockly.serialization.workspaces.load(f.state, ws);
+        loadState(f.state, ws);
         return YAML.parse(generate(ws, model.resolveVariables(project, f)).yaml).metadata.name;
       } finally {
         ws.dispose();

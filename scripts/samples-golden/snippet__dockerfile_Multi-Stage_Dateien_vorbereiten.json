@@ -1,0 +1,28 @@
+{
+ "values": [
+  "df_from.IMAGE=\"alpine:3\"",
+  "df_from.STAGE=\"build\"",
+  "df_from.PLATFORM=\"\"",
+  "df_workdir.PATH=\"/src\"",
+  "df_copy.SOURCES=\".\"",
+  "df_copy.DEST=\"/src/\"",
+  "df_copy.FROM=\"\"",
+  "df_copy.CHOWN=\"\"",
+  "df_copy.CHMOD=\"\"",
+  "df_run.COMMAND=\"mkdir -p /out\\ncp -R /src/. /out/\"",
+  "df_from.IMAGE=\"nginx:alpine\"",
+  "df_from.STAGE=\"\"",
+  "df_from.PLATFORM=\"\"",
+  "df_copy.SOURCES=\"/out/\"",
+  "df_copy.DEST=\"/usr/share/nginx/html/\"",
+  "df_copy.FROM=\"build\"",
+  "df_copy.CHOWN=\"\"",
+  "df_copy.CHMOD=\"\"",
+  "df_expose.PORT=\"80\"",
+  "df_expose.PROTO=\"tcp\""
+ ],
+ "yaml": "# syntax=docker/dockerfile:1\n\nFROM alpine:3 AS build\nWORKDIR /src\nCOPY [\".\",\"/src/\"]\nRUN <<'BYOB_RUN'\nmkdir -p /out\ncp -R /src/. /out/\nBYOB_RUN\n\nFROM nginx:alpine\nCOPY --from=build [\"/out/\",\"/usr/share/nginx/html/\"]\nEXPOSE 80/tcp\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

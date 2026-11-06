@@ -2,6 +2,7 @@
 import * as Blockly from 'blockly/core';
 import { generate, GenResult } from '../blocks/generator';
 import { registerBlocks } from '../blocks/register';
+import { loadState } from '../blocks/value';
 import { SPEC_BY_TYPE } from '../blocks/defs';
 import { resolveVariables } from '../project';
 import type { FileKind } from '../project';
@@ -17,7 +18,7 @@ export function yamlOf(state: any, kind: FileKind, vars: Record<string, string> 
   const ws = new Blockly.Workspace();
   try {
     Blockly.Events.disable();
-    Blockly.serialization.workspaces.load(state, ws);
+    loadState(state, ws);
     return generate(ws, vars, { fileKind:kind, passThroughUnknownVars: true });
   } catch (e: any) {
     return { yaml: `# Vorschau nicht möglich: ${e?.message ?? e}`, docs: 0, warnings: [] };

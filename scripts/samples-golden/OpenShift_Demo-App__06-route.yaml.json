@@ -1,0 +1,13 @@
+{
+ "values": [
+  "k8s_route.NAME=\"demo-app\"",
+  "k8s_route.SVC=\"demo-app\"",
+  "k8s_route.PORT=\"http\"",
+  "route_tls.TERM=\"edge\"",
+  "route_tls.INSEC=\"Redirect\""
+ ],
+ "yaml": "apiVersion: route.openshift.io/v1\nkind: Route\nmetadata:\n  name: demo-app\nspec:\n  to:\n    kind: Service\n    name: demo-app\n  port:\n    targetPort: http\n  tls:\n    termination: edge\n    insecureEdgeTerminationPolicy: Redirect\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

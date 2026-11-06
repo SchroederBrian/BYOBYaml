@@ -1,0 +1,18 @@
+{
+ "values": [
+  "svc_label.K=\"traefik.enable\"",
+  "svc_label.V=\"true\"",
+  "svc_label.K=\"traefik.http.routers.app.rule\"",
+  "svc_label.V=\"Host(`app.example.com`)\"",
+  "svc_label.K=\"traefik.http.routers.app.entrypoints\"",
+  "svc_label.V=\"websecure\"",
+  "svc_label.K=\"traefik.http.routers.app.tls.certresolver\"",
+  "svc_label.V=\"le\"",
+  "svc_label.K=\"traefik.http.services.app.loadbalancer.server.port\"",
+  "svc_label.V=\"3000\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

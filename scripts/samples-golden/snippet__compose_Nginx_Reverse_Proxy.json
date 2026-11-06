@@ -1,0 +1,23 @@
+{
+ "values": [
+  "compose_service.NAME=\"proxy\"",
+  "compose_service.IMAGE=\"nginx:1.27-alpine\"",
+  "svc_port.HOST=\"80\"",
+  "svc_port.CONT=\"80\"",
+  "svc_port.PROTO=\"tcp\"",
+  "svc_port.HOST=\"443\"",
+  "svc_port.CONT=\"443\"",
+  "svc_port.PROTO=\"tcp\"",
+  "svc_volume.SRC=\"./nginx.conf\"",
+  "svc_volume.DST=\"/etc/nginx/nginx.conf\"",
+  "svc_volume.RO=\"TRUE\"",
+  "svc_volume.SRC=\"./certs\"",
+  "svc_volume.DST=\"/etc/nginx/certs\"",
+  "svc_volume.RO=\"TRUE\"",
+  "svc_restart.R=\"unless-stopped\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

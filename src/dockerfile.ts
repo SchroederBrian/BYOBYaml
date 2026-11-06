@@ -62,12 +62,15 @@ export function dockerfileState(instructions: { type: string; fields?: Record<st
 }
 
 /** Data-only validation and emission; shared by live and isolated export workspaces. */
-export function generateDockerfile(workspace: Blockly.Workspace, variables: Record<string,string> = {}): GenResult {
+/** Reads a text/number slot of a block (supplied by the generator, which knows how to evaluate value blocks). */
+export type SlotReader = (block: Blockly.Block, name: string) => string | number;
+
+export function generateDockerfile(workspace: Blockly.Workspace, variables: Record<string,string> = {}, read: SlotReader = (block, name) => block.getFieldValue(name)): GenResult {
   const warnings: GenWarning[] = [], touched = new Set<string>(), lines = ['# syntax=docker/dockerfile:1',''];
   let blocked = false, stageCount = 0;
   const stages = new Map<string,number>(), singleton = new Map<string,string>();
   const report = (block: Blockly.Block, msg: string, error = true) => { warnings.push({ blockId:block.id,msg }); if (error) blocked = true; };
-  const all = workspace.getAllBlocks(false), roots = workspace.getTopBlocks(true).filter((block) => block.type === 'df_file' && block.isEnabled());
+  const all = workspace.getAllBlocks(false).filter((block) => !block.outputConnection), roots = workspace.getTopBlocks(true).filter((block) => block.type === 'df_file' && block.isEnabled());
   all.forEach((block) => block.setWarningText?.(null));
   if (roots.length !== 1) {
     all.filter((block) => block.isEnabled()).forEach((block) => report(block, 'Eine Dockerfile-Datei benötigt genau einen aktiven Dockerfile-Startblock.'));
@@ -80,7 +83,7 @@ export function generateDockerfile(workspace: Blockly.Workspace, variables: Reco
     if (!spec || spec.shape === 'hat') { report(block,'Hier sind ausschließlich Dockerfile-Anweisungen erlaubt.'); continue; }
     const value: Record<string,string> = {};
     for (const arg of spec.args ?? []) {
-      const raw = block.getFieldValue(arg.name) ?? (arg.kind === 'dd' ? arg.options[0][1] : arg.value);
+      const raw = (arg.kind === 'text' || arg.kind === 'num' ? read(block,arg.name) : block.getFieldValue(arg.name)) ?? (arg.kind === 'dd' ? arg.options[0][1] : arg.value);
       value[arg.name] = scalar(raw).replace(/\$\{([A-Za-z_][\w.-]*)\}/g,(match,name) => Object.hasOwn(variables,name) ? variables[name] : match);
     }
     try {

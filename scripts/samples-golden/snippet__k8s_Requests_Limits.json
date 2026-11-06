@@ -1,0 +1,14 @@
+{
+ "values": [
+  "c_resources.KIND=\"requests\"",
+  "c_resources.CPU=\"100m\"",
+  "c_resources.MEM=\"128Mi\"",
+  "c_resources.KIND=\"limits\"",
+  "c_resources.CPU=\"500m\"",
+  "c_resources.MEM=\"512Mi\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}

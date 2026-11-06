@@ -5,6 +5,7 @@
 // - Entf/Backspace, Strg+C, Strg+X, Strg+D work on the whole selection
 // Also: copying a single block (Strg+C, context menu) copies it *with all blocks below it*.
 import * as Blockly from 'blockly/core';
+import { appendState } from './value';
 
 export type CanvasMode = 'select' | 'pan';
 
@@ -54,7 +55,7 @@ class MultiPaster {
         const state = structuredClone(it.state);
         state.x = it.x + dx;
         state.y = it.y + dy;
-        pasted.push(Blockly.serialization.blocks.append(state, ws, { recordUndo: true }) as Blockly.BlockSvg);
+        pasted.push(appendState(state, ws, { recordUndo: true }) as Blockly.BlockSvg);
       }
     } finally {
       Blockly.Events.setGroup(false);

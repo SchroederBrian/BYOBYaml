@@ -1,0 +1,11 @@
+{
+ "values": [
+  "k8s_pvc.NAME=\"demo-app-data\"",
+  "k8s_pvc.SIZE=\"5Gi\"",
+  "k8s_pvc.MODE=\"ReadWriteOnce\""
+ ],
+ "yaml": "apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: demo-app-data\nspec:\n  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage: 5Gi\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

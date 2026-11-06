@@ -1,0 +1,18 @@
+{
+ "values": [
+  "df_from.IMAGE=\"nginx:alpine\"",
+  "df_from.STAGE=\"\"",
+  "df_from.PLATFORM=\"\"",
+  "df_copy.SOURCES=\".\"",
+  "df_copy.DEST=\"/usr/share/nginx/html/\"",
+  "df_copy.FROM=\"\"",
+  "df_copy.CHOWN=\"\"",
+  "df_copy.CHMOD=\"\"",
+  "df_expose.PORT=\"80\"",
+  "df_expose.PROTO=\"tcp\""
+ ],
+ "yaml": "# syntax=docker/dockerfile:1\n\nFROM nginx:alpine\nCOPY [\".\",\"/usr/share/nginx/html/\"]\nEXPOSE 80/tcp\n",
+ "docs": 1,
+ "blocked": false,
+ "warnings": []
+}

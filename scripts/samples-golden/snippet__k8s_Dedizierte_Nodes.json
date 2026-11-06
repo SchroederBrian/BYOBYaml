@@ -1,0 +1,12 @@
+{
+ "values": [
+  "pod_node_selector.K=\"node-role.kubernetes.io/app\"",
+  "pod_node_selector.V=\"\"",
+  "x_list.PATH=\"spec.template.spec.tolerations\"",
+  "x_list.VAL=\"{key: dedicated, operator: Equal, value: app, effect: NoSchedule}\""
+ ],
+ "yaml": "",
+ "docs": 0,
+ "blocked": false,
+ "warnings": []
+}
